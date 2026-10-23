@@ -70,10 +70,28 @@ class FakeSpotifyRemote implements SpotifyRemote {
   /// [stuckOn] instead.
   final refused = <String>{};
   String stuckOn = 'spotify:track:other';
+
+  /// Track URIs whose direct play Spotify ignores without any report.
+  final silent = <String>{};
+
+  /// Reported once, before the next command's own report, like Spotify
+  /// echoing the old track while it switches.
+  String? echoBefore;
   DateTime Function() clock = DateTime.now;
 
   void _report(String? trackUri) {
     if (trackUri == null) return;
+    final echo = echoBefore;
+    echoBefore = null;
+    if (echo != null) {
+      scheduleMicrotask(
+        () => controller.add(
+          SpotifyPlayerStateEvent(
+            SpotifyPlayerState(trackUri: echo, receivedAt: clock()),
+          ),
+        ),
+      );
+    }
     scheduleMicrotask(
       () => controller.add(
         SpotifyPlayerStateEvent(
@@ -93,7 +111,7 @@ class FakeSpotifyRemote implements SpotifyRemote {
   Future<void> play(String uri) async {
     await _record('play $uri');
     // A whole context may start shuffled, so only single tracks report.
-    if (uri.startsWith('spotify:track:')) {
+    if (uri.startsWith('spotify:track:') && !silent.contains(uri)) {
       _report(refused.contains(uri) ? stuckOn : uri);
     }
   }
@@ -438,29 +456,36 @@ void main() {
       expect(nowPlaying().currentMetadata, playlist[2]);
     });
 
-    test('a report from before the request is not a confirmation', () async {
+    test('Spotify ignoring the direct request is reported', () async {
+      // Champion's "Be Alright": unplayable here, so Spotify starts the next
+      // track for the context and then ignores the track on its own.
+      remote.contexts[contextUri] = List.filled(7, 'spotify:track:next');
+      remote.silent.add('spotify:track:c');
+
+      expect(await errorCode(() => playPlaylistTrack(2)), 'wrong_track');
+      expect(nowPlaying().currentMetadata, isNot(playlist[2]));
+    });
+
+    test('re-tapping the playing track waits for Spotify to settle', () async {
       await emitState('c');
-      final controller = container.read(
-        spotifyPlaybackControllerProvider.notifier,
-      );
-      final since = now.add(const Duration(seconds: 1));
+      // Spotify repeats the old track once, then starts the next one.
+      remote.contexts[contextUri] = List.filled(7, 'spotify:track:next');
+      remote.echoBefore = 'spotify:track:c';
+      remote.refused.add('spotify:track:c');
+
+      expect(await errorCode(() => playPlaylistTrack(2)), 'wrong_track');
       expect(
-        await controller.confirmTrack(
-          'spotify:track:c',
-          since: since,
-          timeout: const Duration(milliseconds: 10),
-        ),
-        isNull,
-        reason: 'nothing reported since the request: outcome unknown',
+        remote.calls.where((call) => call == 'play spotify:track:c'),
+        hasLength(1),
+        reason: 'the stale report did not count as success',
       );
-      expect(
-        await controller.confirmTrack(
-          'spotify:track:c',
-          since: now,
-          timeout: const Duration(milliseconds: 10),
-        ),
-        'spotify:track:c',
-      );
+    });
+
+    test('re-tapping the playing track that Spotify keeps succeeds', () async {
+      await emitState('c');
+      await playPlaylistTrack(2);
+      expect(remote.calls.last, 'skipToIndex spotify:playlist:p 6');
+      expect(nowPlaying().currentMetadata, playlist[2]);
     });
 
     test('switching playlists plays the track of the newest one', () async {

@@ -180,6 +180,64 @@ void main() {
       },
     );
 
+    test(
+      'unplayable tracks are left out and later positions follow the app',
+      () async {
+        // Champion: "Be Alright" cannot be played on the account, and the
+        // Spotify app leaves it out of the playlist, so the track after it
+        // is at position 1 in the app, not 2.
+        responses = [
+          json({
+            'items': [
+              {'item': track('one')},
+              {
+                'item': {...track('blocked'), 'is_playable': false},
+              },
+              {
+                'item': {...track('three'), 'is_playable': true},
+              },
+            ],
+          }),
+        ];
+        final tracks = await client().playlistTracks('pl');
+        expect(requests.single.url.queryParameters['market'], 'from_token');
+        expect(tracks.map((t) => t.songId), [
+          'spotify:track:one',
+          'spotify:track:three',
+        ]);
+        expect(tracks.map((t) => t.originalSongIndex), [0, 1]);
+      },
+    );
+
+    test('album and liked tracks ask for playability too', () async {
+      const album = SpotifyAlbum(
+        id: 'al',
+        uri: 'spotify:album:al',
+        name: 'A',
+        artists: ['Band'],
+      );
+      responses = [
+        json({
+          'items': [
+            {...track('gone'), 'is_playable': false},
+            track('kept'),
+          ],
+        }),
+        json({
+          'items': [
+            {'track': track('liked')},
+          ],
+        }),
+      ];
+      final albumTracks = await client().albumTracks(album);
+      expect(albumTracks.single.originalSongIndex, 0);
+      await client().savedTracks();
+      expect(
+        requests.map((r) => r.url.queryParameters['market']),
+        everyElement('from_token'),
+      );
+    });
+
     test('album tracks inherit album name and artwork', () async {
       const album = SpotifyAlbum(
         id: 'al',

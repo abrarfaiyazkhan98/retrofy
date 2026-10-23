@@ -112,13 +112,6 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
     } catch (_) {}
   }
 
-  /// Plays Spotify tracks in the Spotify app and shows them in Now Playing.
-  /// With [contextUri] (album, playlist or liked songs) Spotify continues
-  /// through that context; otherwise just the chosen track is started.
-  /// Plays Spotify content in the Spotify app and shows [tracks] in Now
-  /// Playing. With [index], that track starts, inside [contextUri] when given
-  /// so Spotify continues through the album, playlist or Liked Songs. Without
-  /// [index] the whole [contextUri] plays, where Spotify picks the start.
   /// Starts [track], inside [contextUri] when given so Spotify continues
   /// through it, then checks that Spotify really plays that track. A context
   /// that starts a different track is replaced by the chosen track on its
@@ -126,18 +119,24 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
   /// `wrong_track` rather than a silent substitution.
   Future<void> _playSpotifyTrack(
     MusicMetadata track,
-    String? contextUri,
-  ) async {
+    String? contextUri, {
+    List<MusicMetadata> listed = const [],
+  }) async {
     final uri = track.songId!;
     if (contextUri != null) {
       try {
-        final since = _spotify.now;
+        final mark = _spotify.requestMark;
         await _spotify.playContext(contextUri, track.originalSongIndex);
-        final reported = await _spotify.confirmTrack(uri, since: since);
+        final reported = await _spotify.confirmTrack(uri, mark: mark);
         if (reported == null || reported == uri) return;
+        final shown = listed.indexWhere((t) => t.songId == reported);
         debugPrint(
           'Spotify started $reported instead of $uri at '
-          '${track.originalSongIndex} of $contextUri; playing it directly',
+          '${track.originalSongIndex} of $contextUri '
+          '(listed at position '
+          '${shown < 0 ? 'none' : listed[shown].originalSongIndex}, '
+          'shuffling ${_spotify.state.player?.isShuffling}); '
+          'playing it directly',
         );
       } on SpotifyException catch (error) {
         // The Spotify app rejected the context itself (e.g. an unsupported
@@ -147,15 +146,22 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
         }
       }
     }
-    final since = _spotify.now;
+    final mark = _spotify.requestMark;
     await _spotify.playUri(uri);
-    final reported = await _spotify.confirmTrack(uri, since: since);
+    final reported = await _spotify.confirmTrack(uri, mark: mark);
     if (reported != null && reported != uri) {
       debugPrint('Spotify plays $reported after requesting $uri');
       throw const SpotifyException('wrong_track');
     }
   }
 
+  /// Plays Spotify tracks in the Spotify app and shows them in Now Playing.
+  /// With [contextUri] (album, playlist or liked songs) Spotify continues
+  /// through that context; otherwise just the chosen track is started.
+  /// Plays Spotify content in the Spotify app and shows [tracks] in Now
+  /// Playing. With [index], that track starts, inside [contextUri] when given
+  /// so Spotify continues through the album, playlist or Liked Songs. Without
+  /// [index] the whole [contextUri] plays, where Spotify picks the start.
   Future<void> playSpotify({
     required List<MusicMetadata> tracks,
     int? index,
@@ -170,7 +176,7 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
       if (index == null) {
         await _spotify.playUri(contextUri!);
       } else {
-        await _playSpotifyTrack(tracks[index], contextUri);
+        await _playSpotifyTrack(tracks[index], contextUri, listed: tracks);
       }
       if (!_spotifyActive) {
         // Stop rather than pause: a paused session keeps Retrofy's media
