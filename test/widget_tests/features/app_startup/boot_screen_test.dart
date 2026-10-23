@@ -84,7 +84,7 @@ void main() {
             data: MediaQueryData(disableAnimations: reduceMotion),
             child: const Directionality(
               textDirection: TextDirection.ltr,
-              child: BootScreen(stallTimeout: Duration(seconds: 20)),
+              child: BootScreen(),
             ),
           ),
         ),
