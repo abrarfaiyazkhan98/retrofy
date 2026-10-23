@@ -1,5 +1,5 @@
 {
-  "appTitle": "ClassiPod",
+  "appTitle": "Retrofy",
   "@appTitle": {
     "description": "The title of the application"
   },
@@ -722,5 +722,126 @@
   "coverFlowBigTitle": "Big",
   "@coverFlowBigTitle": {
     "description": "The Cover Flow appearance option with larger album artwork, showing a centered cover and one tilted cover on each side, up to three covers total"
+  },
+  "spotifyTitle": "Spotify",
+  "@spotifyTitle": {
+    "description": "The main menu item and screen title for Spotify; Spotify is a product name and should not be translated"
+  },
+  "spotifySignIn": "Sign In to Spotify",
+  "@spotifySignIn": {
+    "description": "The Spotify menu action that opens the Spotify login page in the browser"
+  },
+  "spotifySigningIn": "Signing In…",
+  "@spotifySigningIn": {
+    "description": "The Spotify menu row shown while the browser login is in progress"
+  },
+  "spotifySignOut": "Sign Out",
+  "@spotifySignOut": {
+    "description": "The Spotify menu action that removes the saved Spotify login from this device"
+  },
+  "spotifyNotConfigured": "Spotify Not Configured",
+  "@spotifyNotConfigured": {
+    "description": "The Spotify menu row shown when the app was built without a Spotify Client ID"
+  },
+  "spotifyLikedSongs": "Liked Songs",
+  "@spotifyLikedSongs": {
+    "description": "The Spotify menu item listing the user's saved tracks"
+  },
+  "spotifyRecentlyPlayed": "Recently Played",
+  "@spotifyRecentlyPlayed": {
+    "description": "The Spotify menu item listing recently played tracks"
+  },
+  "spotifyPlay": "Play",
+  "@spotifyPlay": {
+    "description": "The first row of a Spotify album or playlist that plays it from the beginning"
+  },
+  "spotifyShufflePlay": "Shuffle Play",
+  "@spotifyShufflePlay": {
+    "description": "The row of a Spotify album or playlist that plays it shuffled"
+  },
+  "spotifyErrorNotInstalled": "Install the Spotify app",
+  "@spotifyErrorNotInstalled": {
+    "description": "Shown when the Spotify app is not installed on the phone"
+  },
+  "spotifyErrorNotLoggedIn": "Log in to the Spotify app",
+  "@spotifyErrorNotLoggedIn": {
+    "description": "Shown when the Spotify app is installed but no account is logged in"
+  },
+  "spotifyErrorNotAuthorized": "Allow Retrofy in Spotify",
+  "@spotifyErrorNotAuthorized": {
+    "description": "Shown when the user has not approved Retrofy in the Spotify app"
+  },
+  "spotifyErrorPremium": "Spotify Premium required",
+  "@spotifyErrorPremium": {
+    "description": "Shown when choosing a specific track needs a Spotify Premium account"
+  },
+  "spotifyErrorOffline": "Spotify is offline",
+  "@spotifyErrorOffline": {
+    "description": "Shown when the Spotify app is in offline mode"
+  },
+  "spotifyErrorConnection": "Can't reach Spotify",
+  "@spotifyErrorConnection": {
+    "description": "Shown when Spotify could not be reached because of a network problem"
+  },
+  "spotifyErrorSessionExpired": "Sign in to Spotify again",
+  "@spotifyErrorSessionExpired": {
+    "description": "Shown when the saved Spotify login expired or was revoked"
+  },
+  "spotifyErrorRateLimited": "Spotify is busy, try later",
+  "@spotifyErrorRateLimited": {
+    "description": "Shown when Spotify temporarily rejects requests because too many were made"
+  },
+  "spotifyErrorNotRegistered": "Account not added in Spotify dashboard",
+  "@spotifyErrorNotRegistered": {
+    "description": "Shown when the Spotify account is not on the developer app's user list"
+  },
+  "spotifyErrorSignInFailed": "Spotify sign in failed",
+  "@spotifyErrorSignInFailed": {
+    "description": "Shown when the Spotify login was cancelled, denied or could not be verified"
+  },
+  "spotifyErrorUnavailable": "Not available from Spotify",
+  "@spotifyErrorUnavailable": {
+    "description": "Shown when Spotify does not allow this content to be listed"
+  },
+  "spotifyErrorGeneric": "Spotify request failed",
+  "@spotifyErrorGeneric": {
+    "description": "Shown for any other Spotify error"
+  },
+  "spotifySignedInAs": "Signed in as {name}",
+  "@spotifySignedInAs": {
+    "description": "The Spotify menu row showing which Spotify account is signed in",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "spotifyConnecting": "Connecting to Spotify…",
+  "@spotifyConnecting": {
+    "description": "Shown on a Spotify list while Retrofy connects to the Spotify app (and waits for the user's approval in Spotify) before playback starts"
+  },
+  "lyricsFromLrclib": "Lyrics from LRCLIB, contributed by the community",
+  "@lyricsFromLrclib": {
+    "description": "Attribution under lyrics found on LRCLIB; LRCLIB is a service name and should not be translated"
+  },
+  "lyricsFromTags": "Lyrics from the song's tags",
+  "@lyricsFromTags": {
+    "description": "Attribution under lyrics embedded in the music file"
+  },
+  "lyricsFromLrcFile": "Lyrics from the song's .lrc file",
+  "@lyricsFromLrcFile": {
+    "description": "Attribution under lyrics read from a .lrc file next to the music file"
+  },
+  "lyricsInstrumental": "Instrumental",
+  "@lyricsInstrumental": {
+    "description": "Shown instead of lyrics for an instrumental track"
+  },
+  "watchVideo": "Watch Video",
+  "@watchVideo": {
+    "description": "Now Playing option that pauses the music and opens a YouTube search for the song's official video"
+  },
+  "ambientModeSettingTitle": "Ambient Mode",
+  "@ambientModeSettingTitle": {
+    "description": "Setting that, when on, dims Now Playing to a black screen with small artwork after a while without input; this is Retrofy's own mode, not the phone's Always On Display"
   }
 }

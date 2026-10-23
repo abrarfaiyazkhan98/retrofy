@@ -11,6 +11,7 @@ import 'package:classipod/features/device/services/device_buttons_service_provid
 import 'package:classipod/features/device/widgets/device_controls.dart';
 import 'package:classipod/features/now_playing/models/now_playing_model.dart';
 import 'package:classipod/features/now_playing/provider/now_playing_details_provider.dart';
+import 'package:classipod/features/now_playing/screen/ambient_now_playing_screen.dart';
 import 'package:classipod/features/now_playing/screen/now_playing_screen.dart';
 import 'package:classipod/features/now_playing/widgets/now_playing_bottom_bar.dart';
 import 'package:classipod/features/now_playing/widgets/scrubber_bar.dart';
@@ -54,9 +55,10 @@ class _Player extends Fake implements AudioPlayer {
 }
 
 class _Details extends NowPlayingDetailsNotifier {
-  _Details(this.hasLyrics);
+  _Details(this.hasLyrics, {this.playing = false});
 
   final bool hasLyrics;
+  final bool playing;
   int ratingIncreases = 0;
   int ratingDecreases = 0;
 
@@ -73,7 +75,7 @@ class _Details extends NowPlayingDetailsNotifier {
     );
     return NowPlayingModel(
       currentIndex: 0,
-      isPlaying: false,
+      isPlaying: playing,
       nowPlayingType: NowPlayingType.songs,
       currentMetadata: song,
       metadataList: [song],
@@ -163,6 +165,11 @@ class _SettingsModel extends Fake implements SettingsPreferencesModel {
 
   @override
   VolumeMode get volumeMode => VolumeMode.app;
+
+  static bool ambient = false;
+
+  @override
+  bool get ambientMode => ambient;
 }
 
 class _Settings extends SettingsPreferencesControllerNotifier {
@@ -208,11 +215,17 @@ void main() {
   late GoRouter router;
   late _AudioService audio;
 
-  Future<void> mount(WidgetTester tester, {bool hasLyrics = true}) async {
+  Future<void> mount(
+    WidgetTester tester, {
+    bool hasLyrics = true,
+    bool playing = false,
+  }) async {
     audio = _AudioService();
     container = ProviderContainer(
       overrides: [
-        nowPlayingDetailsProvider.overrideWith(() => _Details(hasLyrics)),
+        nowPlayingDetailsProvider.overrideWith(
+          () => _Details(hasLyrics, playing: playing),
+        ),
         tutorialControllerProvider.overrideWith(_Tutorial.new),
         audioPlayerServiceProvider.overrideWith(() => audio),
         libraryAudioHandlerProvider.overrideWithValue(_Handler()),
@@ -636,6 +649,50 @@ void main() {
       },
     );
   }
+
+  group('ambient_mode', () {
+    tearDown(() => _SettingsModel.ambient = false);
+
+    testWidgets('appears after 30 s of no input while playing', (tester) async {
+      _SettingsModel.ambient = true;
+      await mount(tester, playing: true);
+      await tester.pump(const Duration(seconds: 29));
+      expect(find.byType(AmbientNowPlayingScreen), findsNothing);
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+      expect(find.byType(AmbientNowPlayingScreen), findsOneWidget);
+
+      // Any tap returns to the full player.
+      await tester.tap(find.byType(AmbientNowPlayingScreen));
+      await tester.pumpAndSettle();
+      expect(find.byType(AmbientNowPlayingScreen), findsNothing);
+      expect(find.byType(NowPlayingScreen), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('wheel input postpones it', (tester) async {
+      _SettingsModel.ambient = true;
+      await mount(tester, playing: true);
+      await tester.pump(const Duration(seconds: 20));
+      await input(tester, DeviceAction.rotateForward);
+      await tester.pump(const Duration(seconds: 20));
+      expect(find.byType(AmbientNowPlayingScreen), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('never appears when off or paused', (tester) async {
+      await mount(tester, playing: true);
+      await tester.pump(const Duration(minutes: 2));
+      expect(find.byType(AmbientNowPlayingScreen), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+
+      _SettingsModel.ambient = true;
+      await mount(tester);
+      await tester.pump(const Duration(minutes: 2));
+      expect(find.byType(AmbientNowPlayingScreen), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    });
+  });
 
   testWidgets('lyrics stays open until manually advancing to progress', (
     tester,

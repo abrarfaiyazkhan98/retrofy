@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:classipod/core/extensions/build_context_extensions.dart';
 import 'package:classipod/core/extensions/go_router_extensions.dart';
+import 'package:classipod/core/lyrics/lyrics.dart';
+import 'package:classipod/core/lyrics/lyrics_repository.dart';
+import 'package:classipod/core/models/music_metadata.dart';
 import 'package:classipod/core/models/playback_shuffle_mode.dart';
 import 'package:classipod/core/navigation/routes.dart';
 import 'package:classipod/core/services/audio_player_service.dart';
@@ -9,16 +12,18 @@ import 'package:classipod/core/widgets/empty_state_widget.dart';
 import 'package:classipod/core/widgets/subtle_reflection.dart';
 import 'package:classipod/features/device/models/device_action.dart';
 import 'package:classipod/features/device/services/device_buttons_service_provider.dart';
+import 'package:classipod/features/music/album/providers/album_details_provider.dart';
 import 'package:classipod/features/now_playing/provider/now_playing_details_provider.dart';
-import 'package:classipod/features/now_playing/widgets/lyrics_view.dart';
+import 'package:classipod/features/now_playing/screen/ambient_now_playing_screen.dart';
+import 'package:classipod/features/now_playing/widgets/now_playing_artwork_scene.dart';
 import 'package:classipod/features/now_playing/widgets/now_playing_bottom_bar.dart';
 import 'package:classipod/features/now_playing/widgets/now_playing_widget.dart';
 import 'package:classipod/features/now_playing/widgets/rating_bar.dart';
 import 'package:classipod/features/now_playing/widgets/scrubber_bar.dart';
 import 'package:classipod/features/now_playing/widgets/shuffle_segmented_control.dart';
+import 'package:classipod/features/now_playing/widgets/synced_lyrics_view.dart';
 import 'package:classipod/features/now_playing/widgets/volume_bar.dart';
 import 'package:classipod/features/settings/controller/settings_preferences_controller.dart';
-import 'package:classipod/features/settings/models/volume_mode.dart';
 import 'package:classipod/features/tutorial/controller/tutorial_controller.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -48,9 +53,11 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
   final _scrubber = ScrubberController();
   Timer? _longPressTimer;
   Timer? _barInactivityTimer;
+  Timer? _ambientTimer;
   PlaybackShuffleMode _shuffleMode = PlaybackShuffleMode.off;
   _NowPlayingBottomBarPage _bottomBarPage = _NowPlayingBottomBarPage.seekBar;
   String? _lastLyricsSongIndex;
+  GlobalKey<SyncedLyricsViewState> _lyricsViewKey = GlobalKey();
   Future<void>? _progressReturnTransition;
   int? _progressReturnPage;
   int _activeInputs = 0;
@@ -59,12 +66,18 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
 
   String get routeName => Routes.nowPlaying.name;
 
+  /// Lyrics for the current track once loaded; instrumentals have none.
+  Lyrics? _lyricsOf(MusicMetadata? track, {bool watch = false}) {
+    if (track == null) return null;
+    final value = watch
+        ? ref.watch(lyricsProvider(track)).value
+        : ref.read(lyricsProvider(track)).value;
+    return value == null || value.isEmpty || value.instrumental ? null : value;
+  }
+
   Future<void> onSelectPressed() async {
-    final String? lyrics = ref
-        .read(nowPlayingDetailsProvider)
-        .currentMetadata
-        ?.lyrics;
-    final bool hasLyrics = lyrics != null && lyrics.trim().isNotEmpty;
+    final bool hasLyrics =
+        _lyricsOf(ref.read(nowPlayingDetailsProvider).currentMetadata) != null;
 
     if (_bottomBarPage == _NowPlayingBottomBarPage.seekBar) {
       await _bottomBarPageController.animateToPage(
@@ -156,6 +169,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
   }
 
   Future<void> scrollLyrics(double offsetChange) async {
+    _lyricsViewKey.currentState?.pauseFollowing();
     if (!_lyricsScrollController.hasClients) {
       return;
     }
@@ -178,8 +192,7 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
   }
 
   Future<double> _readVolume() async {
-    if (ref.read(settingsPreferencesControllerProvider).volumeMode ==
-        VolumeMode.app) {
+    if (ref.read(appVolumeActiveProvider)) {
       return ref.read(audioPlayerProvider).volume;
     }
     return VolumeController.instance.getVolume();
@@ -251,7 +264,27 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
     await WidgetsBinding.instance.endOfFrame;
   }
 
+  /// With Ambient Mode on, 30 s without input while playing shows the
+  /// ambient screen. One-shot and re-armed by input; never polls.
+  void _restartAmbientTimer() {
+    _ambientTimer?.cancel();
+    _ambientTimer = null;
+    if (!ref.read(settingsPreferencesControllerProvider).ambientMode) return;
+    _ambientTimer = Timer(const Duration(seconds: 30), () async {
+      final lifecycle = WidgetsBinding.instance.lifecycleState;
+      if (!mounted ||
+          (lifecycle != null && lifecycle != AppLifecycleState.resumed) ||
+          ModalRoute.of(context)?.isCurrent != true ||
+          !ref.read(nowPlayingDetailsProvider).isPlaying) {
+        return;
+      }
+      await AmbientNowPlayingScreen.open(context);
+      if (mounted) _restartAmbientTimer();
+    });
+  }
+
   void restartBarInactivityTimer() {
+    _restartAmbientTimer();
     _barInactivityTimer?.cancel();
     if (!mounted ||
         _activeInputs > 0 ||
@@ -389,10 +422,12 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(tutorialControllerProvider.notifier).playNowPlayingTutorial();
     });
+    _restartAmbientTimer();
   }
 
   @override
   void dispose() {
+    _ambientTimer?.cancel();
     _barInactivityTimer?.cancel();
     _longPressTimer?.cancel();
     _bottomBarPageController.dispose();
@@ -448,13 +483,15 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
   @override
   Widget build(BuildContext context) {
     final nowPlayingDetails = ref.watch(nowPlayingDetailsProvider);
-    final String? lyrics = nowPlayingDetails.currentMetadata?.lyrics;
-    final bool hasLyrics = lyrics != null && lyrics.trim().isNotEmpty;
+    final lyrics = _lyricsOf(nowPlayingDetails.currentMetadata, watch: true);
+    final bool hasLyrics = lyrics != null;
     final String? currentLyricsSongIndex =
         nowPlayingDetails.currentMetadata?.identity;
 
     if (_lastLyricsSongIndex != currentLyricsSongIndex) {
       _lastLyricsSongIndex = currentLyricsSongIndex;
+      // A fresh key per track also keys the lyrics crossfade.
+      _lyricsViewKey = GlobalKey<SyncedLyricsViewState>();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!_lyricsScrollController.hasClients) {
           return;
@@ -544,83 +581,91 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
       onPointerUp: (_) => restartBarInactivityTimer(),
       onPointerSignal: (_) => restartBarInactivityTimer(),
       child: CupertinoPageScaffold(
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                if (nowPlayingDetails.isShuffleEnabled)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 10),
-                    child: Icon(
-                      CupertinoIcons.shuffle,
-                      size: 20,
-                      color: context.appPrimaryTextColor,
-                    ),
-                  ),
-                if (nowPlayingDetails.loopMode != LoopMode.off)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 10),
-                    child: Icon(
-                      (nowPlayingDetails.loopMode == LoopMode.all)
-                          ? CupertinoIcons.repeat
-                          : CupertinoIcons.repeat_1,
-                      size: 20,
-                      color: context.appPrimaryTextColor,
-                    ),
-                  ),
-                if (!nowPlayingDetails.isShuffleEnabled &&
-                    nowPlayingDetails.loopMode == LoopMode.off)
-                  const SizedBox(height: 20),
-              ],
-            ),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => unawaited(handleUserInput(onSelectPressed)),
-                onLongPress: () =>
-                    unawaited(handleUserInput(onSelectLongPress)),
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 10),
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    child:
-                        (_bottomBarPage == _NowPlayingBottomBarPage.lyrics &&
-                            hasLyrics)
-                        ? LyricsView(
-                            key: ValueKey(
-                              'lyrics-view-${nowPlayingDetails.currentMetadata?.identity ?? 0}',
-                            ),
-                            lyrics: lyrics,
-                            scrollController: _lyricsScrollController,
-                          )
-                        : const NowPlayingWidget(
-                            key: ValueKey('now-playing-view'),
-                          ),
-                  ),
-                ),
-              ),
-            ),
-            SizedBox(
-              height: 24 + SubtleReflection.visibleHeight,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: PageView(
-                  controller: _bottomBarPageController,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: [
-                    for (final page in bottomBarPages)
-                      Padding(
-                        padding: const EdgeInsets.only(
-                          bottom: SubtleReflection.visibleHeight,
-                        ),
-                        child: page,
+        child: NowPlayingArtworkScene(
+          artworkPath: ref.watch(
+            songAlbumArtworkProvider(nowPlayingDetails.currentMetadata),
+          ),
+          heroTag:
+              "${nowPlayingDetails.currentMetadata?.albumName}-"
+              "${nowPlayingDetails.currentMetadata?.albumArtistName}",
+          dimmed: _bottomBarPage == _NowPlayingBottomBarPage.lyrics,
+          child: Column(
+            children: [
+              const SizedBox(height: 6),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  if (nowPlayingDetails.isShuffleEnabled)
+                    const Padding(
+                      padding: EdgeInsets.only(right: 10),
+                      child: Icon(
+                        CupertinoIcons.shuffle,
+                        size: 20,
+                        color: CupertinoColors.white,
                       ),
-                  ],
+                    ),
+                  if (nowPlayingDetails.loopMode != LoopMode.off)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 10),
+                      child: Icon(
+                        (nowPlayingDetails.loopMode == LoopMode.all)
+                            ? CupertinoIcons.repeat
+                            : CupertinoIcons.repeat_1,
+                        size: 20,
+                        color: CupertinoColors.white,
+                      ),
+                    ),
+                  if (!nowPlayingDetails.isShuffleEnabled &&
+                      nowPlayingDetails.loopMode == LoopMode.off)
+                    const SizedBox(height: 20),
+                ],
+              ),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => unawaited(handleUserInput(onSelectPressed)),
+                  onLongPress: () =>
+                      unawaited(handleUserInput(onSelectLongPress)),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child:
+                          (_bottomBarPage == _NowPlayingBottomBarPage.lyrics &&
+                              hasLyrics)
+                          ? SyncedLyricsView(
+                              key: _lyricsViewKey,
+                              lyrics: lyrics,
+                              scrollController: _lyricsScrollController,
+                            )
+                          : const NowPlayingWidget(
+                              key: ValueKey('now-playing-view'),
+                            ),
+                    ),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 10),
-          ],
+              SizedBox(
+                height: 24 + SubtleReflection.visibleHeight,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: PageView(
+                    controller: _bottomBarPageController,
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: [
+                      for (final page in bottomBarPages)
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            bottom: SubtleReflection.visibleHeight,
+                          ),
+                          child: page,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
         ),
       ),
     );

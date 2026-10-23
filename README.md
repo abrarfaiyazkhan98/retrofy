@@ -1,84 +1,78 @@
 <div align="center">
 
-# 🎵 ClassiPod
+# 🎵 Retrofy
 
-![Classipod App Screenshots](screenshots/combined.jpg)
-
-ClassiPod brings an iPod Classic-inspired click wheel to your music collection.
-Play local audio files or stream from a Subsonic-compatible server, including
-Navidrome. Browse both libraries together, or focus on your server collection.
+An iPod Classic-inspired music player for Android, with a rotating click wheel,
+Cover Flow and an immersive Now Playing screen. Retrofy plays your local music,
+streams from Subsonic-compatible servers, and controls **Spotify Premium**
+through the official Spotify app.
 
 </div>
 
-Available for Android, iOS, macOS, Windows, Linux and web. Native apps support
-local music and server streaming. The web app plays demo songs or connects to
-your server; it does not import local folders.
+> **Based on [Classipod](https://github.com/adeeteya/Classipod) by Aditya R.**
+> This product includes software developed by Aditya R.
+>
+> Retrofy is an independent personal project. It is not affiliated with,
+> endorsed by, or sponsored by Aditya R, Spotify, Samsung, or Google.
+> Spotify is a trademark of Spotify AB.
 
-Local files play offline. Server music requires your own compatible server,
-an account on that server, and a network connection. ClassiPod does not include
-a music subscription, offline server downloads, or server playlist syncing.
+Retrofy targets Android (built and tested on a Samsung Galaxy S25 Ultra,
+Android 17). The iOS, macOS, Windows, Linux and web projects inherited from
+Classipod are kept but have not been tested with Retrofy's changes, and the
+Spotify features are Android-only.
 
-## ✨ Features
+## ✨ What Retrofy adds
 
-### 🗃️ Your library, local and streamed
+### 🎧 Spotify (Premium)
 
-- 🌐 Stream from Subsonic-compatible servers such as Navidrome through
-  **Settings → Library Settings → Subsonic**.
-- 🏠 Combine local and server tracks, or use **Hide Local Music** while streaming.
-- 🧑‍🎤 Browse songs, artists, album artists, albums, and genres.
-- 🔍 Search songs, artists, albums, and your ClassiPod playlists.
-- 📂 Discover Android music through MediaStore. Select a parent music folder on
-  iOS, macOS, Windows, or Linux and scan its subfolders automatically.
-- ⚡ Cache metadata and artwork for faster startup, refresh the library,
-  rebuild the index and exclude folders.
-- 📋 Inspect unreadable files and retry guidance in **Missing Tracks**.
-- 🧹 Optionally hide duplicate filenames without deleting music files.
-- 📃 Create and save custom ClassiPod playlists.
-- ⭐ Rate songs, with ratings and edits stored in ClassiPod.
-- 📝 View embedded lyrics when available.
-- 🎶 Play MP3, WAV, FLAC, M4A, MP4, Ogg, Opus, AAC, AIFF, APE, and MOV audio,
-  subject to the platform's playback support.
+- **Sign in with Spotify** in the browser using OAuth 2.0 with PKCE. No Client
+  Secret is ever included; tokens are stored in Android Keystore-backed
+  secure storage and refreshed automatically.
+- **Browse** your playlists, saved albums, followed artists and their albums,
+  Liked Songs, Recently Played, and search, all in the iPod lists.
+- **Play through the Spotify app** with the official Spotify App Remote SDK.
+  The click wheel controls play/pause, previous/next, seeking, shuffle and
+  repeat; Now Playing follows Spotify's track, progress and artwork.
+- The first playback asks once for permission to control Spotify, from
+  inside Retrofy.
 
-### 🎧 Playback and controls
+### 🖼️ Immersive Now Playing
 
-- 🎡 Navigate with the rotating click wheel or touchscreen.
-- ⏮️ Skip tracks, seek forward or backward, and adjust volume in the app.
-- 🔀 Shuffle songs or whole albums, keeping album tracks in disc/track order.
-- ➰ Repeat one song or the current queue.
-- 💾 Restore the previous queue and selected song after reopening, paused at
-  the beginning of the song.
-- 💤 Set a sleep timer for 15, 30, 45, or 60 minutes, or the end of the song.
-- 📱 Enjoy background playback and mobile media controls, Windows system media
-  controls, and Linux MPRIS controls where supported.
-- 📡 Recover server playback after temporary connection failures, with buffering
-  feedback and a Retry action when needed.
-- ⏩ Scrub to a previewed position before committing the seek.
-- 💿 See queue position and progress in Now Playing, with access to ratings,
-  shuffle controls, and available lyrics.
+- The album cover fills the iPod screen, with a tinted overlay taken from the
+  cover so text stays readable on any artwork.
+- The progress bar picks up the cover's accent colour.
+- Gentle crossfades between tracks; reduced motion is respected.
 
-### 📱 The iPod Classic-inspired interface
+### 🎤 Synced lyrics
 
-- 🎞️ Explore Cover Flow with **Original** and **Big** layouts, smooth wheel
-  motion, and animated transitions.
-- 🪞 Enjoy reflective album artwork.
-- 🎨 Choose light and dark screen themes and device colors including Silver,
-  Black, OLED Black, and more.
-- 📺 Browse with split-screen previews and scrolling titles.
-- 🔤 See a letter indicator while scrolling quickly through your collection.
-- 📌 Return to remembered selections and scroll positions when navigating back.
-- ⏱️ Automatically return to Now Playing after inactivity during playback;
-  temporary Now Playing controls also return to the progress view.
-- 🔉 Hear bundled iPod-inspired click wheel sounds.
-- 📳 Enable vibration feedback on supported devices.
-- 🖥️ Use responsive layouts and fullscreen Immersive Mode.
-- 🔋 View battery level and charging status where supported.
-- 📖 Get started with the introductory tutorial.
-- ℹ️ Find app information in the About screen.
-- 🌍 Use ClassiPod in your language with a multilingual interface.
+- Time-synced lyrics with the sung line highlighted and kept in view.
+- Sources: lyrics embedded in your files, `.lrc` files next to local songs,
+  and, for Spotify songs, [LRCLIB](https://lrclib.net) (community-contributed;
+  credited on screen).
+
+### 🎬 Watch Video
+
+- From Now Playing (hold the centre button), **Watch Video** pauses playback
+  and opens a YouTube search for the song's official video. Videos do not play
+  inside Retrofy (see *Known limitations*).
+
+### 🌙 Ambient Mode and battery
+
+- Optional **Ambient Mode** (Settings, off by default): after 30 seconds
+  without input while music plays, Now Playing turns into a black screen with
+  a small cover. It keeps no wake lock and is not Samsung's Always On Display.
+- Retrofy stops its timers when it is not visible, so it uses no measurable CPU
+  in the background while Spotify plays.
+
+### 🗃️ Everything from Classipod
+
+Local music with Cover Flow, artists, albums, genres, playlists, ratings,
+search, shuffle by song or album, repeat, sleep timer, themes, device colours,
+click-wheel sounds and haptics, and Subsonic/Navidrome streaming.
 
 ### 🎵 Supported audio formats
 
-ClassiPod imports a format when its metadata can be read and at least one
+Retrofy imports a format when its metadata can be read and at least one
 configured playback backend can play it. Playback availability therefore varies
 by platform:
 
@@ -95,15 +89,74 @@ by platform:
 | Monkey's Audio | `.ape`                   | Windows, Linux                                  |
 | QuickTime      | `.mov`                   | iOS, Windows, Linux; browser-dependent          |
 
-### 🔜 Upcoming Features
+## 📲 Install on Android
 
-- 🎮 Ipod Built-in Games
-- 📸 Ability to View Photos and Videos from the device
+1. Build the APK (see [Building](#-building)) or use one you built.
+2. On the phone: **Settings → About phone → Software information**, tap
+   **Build number** seven times, then enable **Developer options → USB
+   debugging**.
+3. Connect the phone and install:
+
+   ```bash
+   adb install -r Retrofy-1.0.0.apk
+   ```
+
+   Or copy the APK to the phone, open it and allow installs from that app.
+4. For Spotify, install the Spotify app and log in to a Premium account.
+
+## 🔑 Spotify setup
+
+Spotify features need your own Spotify Developer app. Follow
+**[docs/spotify-setup.md](docs/spotify-setup.md)**: register the package name
+`com.abrarfaiyazkhan.retrofy`, your signing certificate's SHA-1, and the
+redirect URIs `retrofy://spotify-callback` and `retrofy://spotify-app-remote`,
+then put your Client ID in a git-ignored `spotify.config.json`
+(see `spotify.config.example.json`). Without it the app builds and runs, and
+the Spotify menu says **Spotify Not Configured**.
+
+## 🛠️ Building
+
+```bash
+flutter pub get
+flutter build apk --release --flavor production \
+  --target-platform android-arm64 \
+  --dart-define-from-file=spotify.config.json
+```
+
+Release signing reads `android/key.properties` (git-ignored); keep the keystore
+and passwords outside the repository.
+
+## ⚠️ Known limitations
+
+- **Spotify Development Mode** (Spotify's rules since February 2026): the app
+  owner needs Premium; up to five users; only playlists you own or collaborate
+  on list their tracks (others offer Play and Shuffle Play); search returns at
+  most 10 results; artist pages list albums only.
+- Choosing a specific track requires Spotify Premium.
+- **Video** plays in YouTube, not inside Retrofy: finding the official video
+  ID requires the YouTube Data API with an API key, which Retrofy does not
+  ship.
+- **Always On Display:** Samsung's AOD and lock screen show Spotify's own media
+  player; apps cannot add content to Samsung's AOD.
+- Lyrics depend on community-contributed LRCLIB entries for Spotify songs;
+  many songs have none.
+- After a fresh launch, Now Playing shows Spotify's current song only after you
+  play something from Retrofy.
+- The sleep timer's "end of song" option applies to local and Subsonic
+  playback only.
+- Spotify content is not part of Cover Flow or the local Songs/Albums lists.
+
+## 🧪 Testing
+
+`flutter analyze` and `flutter test` (299 tests) pass. Real-device results and
+every confirmed defect with its regression test are in
+[docs/testing-report.md](docs/testing-report.md) and
+[docs/regression-learning.md](docs/regression-learning.md).
 
 ## Connect to Subsonic or Navidrome
 
 Open **Settings → Library Settings → Subsonic** and enter the server's base
-URL (including any reverse-proxy path), username and password. ClassiPod
+URL (including any reverse-proxy path), username and password. Retrofy
 supports token-authenticated Subsonic API 1.13+ servers, including Navidrome.
 The connection is checked before saving. Native apps combine server and local music; Web shows
 the server library instead of demo songs while enabled.
@@ -115,14 +168,14 @@ keeps its configuration and cache, hides its tracks, and stops server playback.
 Saved playlist entries remain available when the same server is reconnected.
 **Refresh Library** fetches a new catalog; **Re-index** also clears cached
 server artwork. Failed scans retain the previous catalog. Ratings and edits
-stay in ClassiPod and are not written back to the server.
+stay in Retrofy and are not written back to the server.
 
 Native passwords use OS secure storage. Web passwords last only until reload;
 re-enter the password through Configure Subsonic or when starting playback.
 Metadata and artwork are cached, but audio is streamed and requires a connection.
 Server playlist synchronization and offline audio downloads are not included.
 
-Web servers must allow CORS from the ClassiPod origin. Browsers block HTTP
+Web servers must allow CORS from the Retrofy origin. Browsers block HTTP
 servers from an HTTPS app. Native apps allow HTTP for user-configured servers,
 including LAN IP addresses, using app-wide Android and Apple transport
 exceptions because server hosts are not known at build time. HTTPS certificates
@@ -131,125 +184,6 @@ Transport configuration changes require rebuilding and reinstalling the app;
 hot reload does not apply them.
 Linux secure storage requires the system Secret Service/libsecret; Windows
 builds require the Visual Studio ATL component used by flutter_secure_storage.
-
-## 💻 Installation links
-
-<table>
-  <tr>
-    <th>Platform</th>
-    <th>Installation Links</th>
-  </tr>
-  <tr>
-    <td>Android</td>
-    <td>
-      <a href="https://play.google.com/store/apps/details?id=com.adeeteya.classipod">
-        <img height="80" alt="Get it on Google Play" src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png">
-      </a>
-      <br>
-      <a href="https://f-droid.org/packages/com.adeeteya.classipod">
-        <img height="80" alt="Get it on F-Droid" src="https://f-droid.org/badge/get-it-on.png">
-      </a>
-      <br>
-      <a href="https://github.com/adeeteya/Classipod/releases/latest/download/Classipod-Android.apk">
-        <img alt="APK download" src="https://img.shields.io/static/v1?label=Download&message=Android+.apk&color=2ea44f&style=for-the-badge&logo=Android&logoColor=white&logoSize=auto">
-      </a>
-    </td>
-  </tr>
-
-  <tr>
-      <td>Linux</td>
-      <td>
-        <a href="https://github.com/adeeteya/Classipod/releases/latest/download/Classipod-Linux-AppImage.AppImage">
-          <img alt="Download .AppImage" src="https://img.shields.io/static/v1?label=Download&message=.AppImage&color=FCC624&style=for-the-badge&logo=linux&logoColor=white&logoSize=auto">
-        </a>
-        <br>
-        <br>
-        <a href="https://github.com/adeeteya/Classipod/releases/latest/download/Classipod-Linux-deb.deb">
-          <img alt="Download .deb" src="https://img.shields.io/static/v1?label=Download&message=%20%20%20%20%20.deb&color=A81D33&style=for-the-badge&logo=debian&logoColor=white&logoSize=auto">
-        </a>
-        <br>
-        <br>
-        <a href="https://github.com/adeeteya/Classipod/releases/latest/download/Classipod-Linux-rpm.rpm">
-          <img alt="Download .rpm" src="https://img.shields.io/static/v1?label=Download&message=.rpm&color=EE0000&style=for-the-badge&logo=redhat&logoColor=white&logoSize=auto">
-        </a>
-      </td>
-  </tr>
-
-  <tr>
-      <td>Windows</td>
-      <td>
-        <a href="https://github.com/adeeteya/Classipod/releases/latest/download/Classipod-Windows.exe">
-          <img alt="Download Windows Installer" src="https://img.shields.io/static/v1?label=Download&message=Windows+.exe&color=blue&style=for-the-badge&logo=webtrees&logoColor=white&logoSize=auto">
-        </a>
-      </td>
-  </tr>
-
-  <tr>
-      <td>iOS</td>
-      <td>
-        <a href="https://github.com/adeeteya/Classipod/releases/latest/download/Classipod-iOS.ipa">
-          <img alt="Download .ipa" src="https://img.shields.io/static/v1?label=Download&message=.ipa&color=black&style=for-the-badge&logo=ios&logoColor=white&logoSize=auto">
-        </a>
-        <br>Unsigned; requires sideloading and signing on your device.
-      </td>
-  </tr>
-
-  <tr>
-      <td>macOS</td>
-      <td>
-        <a href="https://github.com/adeeteya/Classipod/releases/latest/download/Classipod-macOS.dmg">
-          <img alt="Download .dmg" src="https://img.shields.io/static/v1?label=Download&message=.dmg&color=lightgray&style=for-the-badge&logo=macos&logoColor=white&logoSize=auto">
-        </a>
-        <br>Apple Silicon and Intel; no Developer ID signature or notarization.
-      </td>
-  </tr>
-
-  <tr>
-      <td>Web App</td>
-      <td>
-        <a href="https://adeeteya.github.io/Classipod/#/">
-          <img alt="Web App" src="https://img.shields.io/static/v1?label=Webapp&message=Visit+Website&color=blueviolet&style=for-the-badge&logo=googlechrome&logoColor=white&logoSize=auto">
-        </a>
-      </td>
-  </tr>
-
-</table>
-
-### Installing on iPhone or iPad
-
-Download `Classipod-iOS.ipa` from a release that includes Apple builds. This is
-an unsigned device build, not an App Store or TestFlight download. Install it
-using [AltStore Classic](https://faq.altstore.io/altstore-classic) with AltServer,
-or another compatible sideloading tool, which signs it using your Apple account.
-Downloading the IPA in Safari alone does not install it.
-
-With a free account, AltStore apps need refreshing every seven days, and the
-three-active-app limit includes AltStore itself. Follow the tool's installation
-instructions, including Developer Mode where required. See
-[AltStore's account limits](https://faq.altstore.io/altstore-classic/your-altstore).
-
-### Installing on macOS
-
-Download `Classipod-macOS.dmg`, open it, and drag `classipod.app` into
-**Applications**. The universal app supports Apple Silicon and Intel Macs
-running macOS 12 or later.
-
-The app is **not notarized or signed with an Apple Developer ID**. It carries a
-local ad-hoc signature for execution on Apple Silicon; this does not verify a
-developer identity. Gatekeeper may block the first launch. If you trust the
-release, try opening the app, then use **System Settings → Privacy & Security →
-Open Anyway** and confirm. See [Apple's instructions](https://support.apple.com/en-us/102445).
-
-On both platforms, choose a parent music folder when prompted. ClassiPod scans
-its subfolders and caches metadata and artwork. Use
-**Settings → Library Settings → Re-index** to select a folder again and rebuild
-the index.
-
-Apple downloads appear only on releases built with their platform options
-selected. See [Apple release documentation](docs/apple-releases.md) for build
-commands, checksums, and release configuration. The web app can play demo songs
-or stream from a Subsonic/Navidrome server.
-It does not import local folders.
 
 ## 🔌 Plugins
 
@@ -291,14 +225,21 @@ It does not import local folders.
 | [**hive_ce_generator**](https://pub.dev/packages/hive_ce_generator)                           | For automatically generating Hive TypeAdapters                                      |
 | [**riverpod_lint**](https://pub.dev/packages/riverpod_lint)                                   | For using riverpod specific linting rules                                           |
 
-## 🤓 Author
+## 🤓 Authors
 
-**[Aditya R](https://github.com/adeeteya)**
+- **Retrofy changes:** [Abrar Faiyaz Khan](https://github.com/abrarfaiyazkhan98)
+- **Original Classipod:** [Aditya R](https://github.com/adeeteya)
 
 ## 🔖 LICENCE
 
-Copyright (c) 2025 Aditya R
-[BSD-4-Clause LICENCE](https://github.com/adeeteya/Classipod/blob/master/LICENSE)
+Copyright (c) 2025 Aditya R. Distributed under the
+[BSD-4-Clause licence](LICENSE), which also covers Retrofy's changes.
+This product includes software developed by Aditya R.
+
+The bundled Spotify App Remote SDK (`android/app/libs`) is Copyright (c) 2015-2018
+Spotify AB, licensed under the Apache License 2.0; see
+`android/app/libs/LICENSE-spotify-android-sdk.txt` and
+`android/app/libs/NOTICE-spotify-android-sdk.txt`.
 
 ## 🙏 Attributions
 

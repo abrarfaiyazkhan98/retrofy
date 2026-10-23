@@ -16,8 +16,12 @@ try {
 }
 
 android {
-    namespace = "com.adeeteya.classipod"
-    compileSdk = 37
+    namespace = "com.abrarfaiyazkhan.retrofy"
+    // API 37 platforms ship as major.minor packages ("android-37.0"); name the
+    // minor level so AGP resolves the installed platform.
+    compileSdk {
+        version = release(37) { minorApiLevel = 0 }
+    }
     ndkVersion = "28.2.13676358"
 
     compileOptions {
@@ -26,7 +30,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.adeeteya.classipod"
+        applicationId = "com.abrarfaiyazkhan.retrofy"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -56,6 +60,10 @@ android {
         }
         getByName("release") {
             signingConfig = signingConfigs.getByName("release")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 
@@ -63,12 +71,12 @@ android {
     productFlavors {
         create("production") {
             dimension = "default"
-            resValue("string", "app_name", "Classipod")
+            resValue("string", "app_name", "Retrofy")
             applicationIdSuffix = ""
         }
         create("dev") {
             dimension = "default"
-            resValue("string", "app_name", "Classipod Dev")
+            resValue("string", "app_name", "Retrofy Dev")
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
         }
@@ -83,4 +91,15 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Official Spotify App Remote SDK 0.8.0, which Spotify distributes only as
+    // an AAR: https://github.com/spotify/android-sdk/releases
+    implementation(files("libs/spotify-app-remote-release-0.8.0.aar"))
+    // Official Spotify auth library, used only to ask for app-remote-control
+    // from Retrofy's foreground activity (see SpotifyRemoteBridge).
+    implementation("com.spotify.android:auth:5.0.0")
+    // App Remote serializes its protocol messages with Gson.
+    implementation("com.google.code.gson:gson:2.11.0")
 }

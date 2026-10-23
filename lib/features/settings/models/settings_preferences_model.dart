@@ -18,6 +18,9 @@ class SettingsPreferencesModel {
   final VolumeMode volumeMode;
   final bool splitScreenEnabled;
   final bool immersiveMode;
+
+  /// Opt-in black Now Playing after inactivity; off unless the user enables it.
+  final bool ambientMode;
   final bool fetchOnlineMusic;
   final AppTheme appTheme;
   final CoverFlowAppearance coverFlowAppearance;
@@ -34,6 +37,7 @@ class SettingsPreferencesModel {
     required this.volumeMode,
     required this.splitScreenEnabled,
     required this.immersiveMode,
+    this.ambientMode = false,
     required this.appTheme,
     this.fetchOnlineMusic = false,
     this.coverFlowAppearance = CoverFlowAppearance.original,
@@ -51,6 +55,7 @@ class SettingsPreferencesModel {
     VolumeMode? volumeMode,
     bool? splitScreenEnabled,
     bool? immersiveMode,
+    bool? ambientMode,
     bool? fetchOnlineMusic,
     AppTheme? appTheme,
     CoverFlowAppearance? coverFlowAppearance,
@@ -68,6 +73,7 @@ class SettingsPreferencesModel {
       volumeMode: volumeMode ?? this.volumeMode,
       splitScreenEnabled: splitScreenEnabled ?? this.splitScreenEnabled,
       immersiveMode: immersiveMode ?? this.immersiveMode,
+      ambientMode: ambientMode ?? this.ambientMode,
       appTheme: appTheme ?? this.appTheme,
       coverFlowAppearance: coverFlowAppearance ?? this.coverFlowAppearance,
       fetchOnlineMusic: fetchOnlineMusic ?? this.fetchOnlineMusic,
@@ -88,6 +94,7 @@ class SettingsPreferencesModel {
         other.volumeMode == volumeMode &&
         other.splitScreenEnabled == splitScreenEnabled &&
         other.immersiveMode == immersiveMode &&
+        other.ambientMode == ambientMode &&
         other.fetchOnlineMusic == fetchOnlineMusic &&
         other.appTheme == appTheme &&
         other.coverFlowAppearance == coverFlowAppearance;
@@ -106,6 +113,7 @@ class SettingsPreferencesModel {
     volumeMode,
     splitScreenEnabled,
     immersiveMode,
+    ambientMode,
     appTheme,
     fetchOnlineMusic,
     coverFlowAppearance,

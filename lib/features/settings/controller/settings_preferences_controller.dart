@@ -7,6 +7,7 @@ import 'package:classipod/core/repositories/library/library_progress.dart';
 import 'package:classipod/core/repositories/library/library_provider.dart';
 import 'package:classipod/core/services/audio_files_service.dart';
 import 'package:classipod/core/services/audio_player_service.dart';
+import 'package:classipod/core/services/playback/playback_backend.dart';
 import 'package:classipod/core/subsonic/subsonic_controller.dart';
 import 'package:classipod/features/app_startup/controllers/splash_controller.dart';
 import 'package:classipod/features/music/playlist/models/playlist_model.dart';
@@ -29,6 +30,19 @@ import 'package:just_audio/just_audio.dart';
 import 'package:universal_html/html.dart';
 import 'package:volume_controller/volume_controller.dart';
 import 'package:window_manager/window_manager.dart';
+
+/// In-app volume scales the local player only; Spotify follows the device
+/// volume, so the click wheel adjusts that while Spotify owns Now Playing.
+final appVolumeActiveProvider = Provider<bool>(
+  (ref) =>
+      ref.watch(
+            settingsPreferencesControllerProvider.select(
+              (settings) => settings.volumeMode,
+            ),
+          ) ==
+          VolumeMode.app &&
+      ref.watch(playbackBackendProvider) == PlaybackBackend.library,
+);
 
 final settingsPreferencesControllerProvider =
     NotifierProvider<
@@ -68,6 +82,7 @@ class SettingsPreferencesControllerNotifier
       ),
       splitScreenEnabled: settingsPreferencesRepository.getSplitScreenEnabled(),
       immersiveMode: settingsPreferencesRepository.getImmersiveMode(),
+      ambientMode: settingsPreferencesRepository.getAmbientMode(),
       coverFlowAppearance: CoverFlowAppearance.fromName(
         settingsPreferencesRepository.getCoverFlowAppearance(),
       ),
@@ -314,6 +329,13 @@ class SettingsPreferencesControllerNotifier
         .setAppTheme(appThemeName: updatedTheme.name);
   }
 
+  Future<void> toggleAmbientMode() async {
+    state = state.copyWith(ambientMode: !state.ambientMode);
+    await ref
+        .read(settingsPreferencesRepositoryProvider)
+        .setAmbientMode(isAmbientModeEnabled: state.ambientMode);
+  }
+
   Future<void> toggleImmersiveMode() async {
     state = state.copyWith(immersiveMode: !state.immersiveMode);
     await ref
@@ -378,6 +400,9 @@ class SettingsPreferencesControllerNotifier
         .setImmersiveMode(isImmersiveModeEnabled: false);
     await ref
         .read(settingsPreferencesRepositoryProvider)
+        .setAmbientMode(isAmbientModeEnabled: false);
+    await ref
+        .read(settingsPreferencesRepositoryProvider)
         .setAppTheme(appThemeName: AppTheme.light.name);
     await ref
         .read(settingsPreferencesRepositoryProvider)
@@ -385,8 +410,14 @@ class SettingsPreferencesControllerNotifier
     ref.invalidateSelf();
   }
 
+  // Computed here rather than via appVolumeActiveProvider, which depends on
+  // this controller and would form a provider cycle.
+  bool get _appVolumeActive =>
+      state.volumeMode == VolumeMode.app &&
+      ref.read(playbackBackendProvider) == PlaybackBackend.library;
+
   Future<void> increaseVolume() async {
-    if (state.volumeMode == VolumeMode.app) {
+    if (_appVolumeActive) {
       final double currentVolume = ref.read(audioPlayerProvider).volume;
       if (currentVolume < 1) {
         await ref.read(audioPlayerProvider).setVolume(currentVolume + 0.05);
@@ -402,7 +433,7 @@ class SettingsPreferencesControllerNotifier
   }
 
   Future<void> decreaseVolume() async {
-    if (state.volumeMode == VolumeMode.app) {
+    if (_appVolumeActive) {
       final double currentVolume = ref.read(audioPlayerProvider).volume;
       if (currentVolume > 0) {
         if (currentVolume <= 0.05) {

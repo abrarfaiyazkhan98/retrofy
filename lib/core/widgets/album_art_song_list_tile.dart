@@ -39,7 +39,12 @@ class AlbumArtSongListTile extends ConsumerWidget {
           child: Row(
             children: [
               Image(
-                image: artworkImage(ref, songMetadata.thumbnailPath),
+                image: artworkImage(
+                  ref,
+                  songMetadata.thumbnailPath,
+                  decodeSize: (54 * MediaQuery.devicePixelRatioOf(context))
+                      .round(),
+                ),
                 errorBuilder: (_, _, _) => Image.asset(
                   Assets.defaultAlbumCoverImage,
                   fit: BoxFit.fitWidth,

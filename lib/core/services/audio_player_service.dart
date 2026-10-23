@@ -6,7 +6,11 @@ import 'package:classipod/core/models/music_metadata.dart';
 import 'package:classipod/core/models/playback_shuffle_mode.dart';
 import 'package:classipod/core/providers/filtered_audio_files_provider.dart';
 import 'package:classipod/core/services/playback/library_audio_handler.dart';
+import 'package:classipod/core/services/playback/playback_backend.dart';
 import 'package:classipod/core/services/playback/playback_session.dart';
+import 'package:classipod/core/spotify/spotify_auth.dart';
+import 'package:classipod/core/spotify/spotify_playback_controller.dart';
+import 'package:classipod/core/spotify/spotify_remote.dart';
 import 'package:classipod/core/subsonic/subsonic_controller.dart';
 import 'package:classipod/features/music/album/models/album_model.dart';
 import 'package:classipod/features/music/playlist/models/playlist_model.dart';
@@ -50,6 +54,8 @@ final libraryAudioHandlerProvider = Provider<LibraryAudioHandler>((ref) {
 
 void _reconcileLibrary(Ref ref, LibraryAudioHandler handler) {
   if (handler.restoringSession) return;
+  // Library changes never touch a Spotify queue.
+  if (ref.read(playbackBackendProvider) == PlaybackBackend.spotify) return;
   final now = ref.read(nowPlayingDetailsProvider);
   final remote = ref.read(subsonicControllerProvider).value;
   final library = ref.read(filteredAudioFilesProvider).value;
@@ -77,6 +83,91 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
   AudioPlayerServiceNotifier() : super();
 
   bool _sessionRestored = false;
+
+  bool get _spotifyActive =>
+      ref.read(playbackBackendProvider) == PlaybackBackend.spotify;
+
+  SpotifyPlaybackController get _spotify =>
+      ref.read(spotifyPlaybackControllerProvider.notifier);
+
+  /// Position of whichever engine owns Now Playing.
+  Duration get displayPosition => _spotifyActive
+      ? _spotify.position
+      : ref.read(libraryAudioHandlerProvider).displayPosition;
+
+  /// Hands Now Playing back to the local engine before a library item plays.
+  /// The Spotify queue is cleared because the local engine cannot play it.
+  Future<void> _useLibrary() async {
+    if (!_spotifyActive) return;
+    ref.read(playbackBackendProvider.notifier).backend =
+        PlaybackBackend.library;
+    ref
+        .read(nowPlayingDetailsProvider.notifier)
+        .setNewMetadataList(
+          nowPlayingType: NowPlayingType.songs,
+          newMetadataList: const [],
+        );
+    try {
+      await _spotify.pause();
+    } catch (_) {}
+  }
+
+  /// Plays Spotify tracks in the Spotify app and shows them in Now Playing.
+  /// With [contextUri] (album, playlist or liked songs) Spotify continues
+  /// through that context; otherwise just the chosen track is started.
+  /// Plays Spotify content in the Spotify app and shows [tracks] in Now
+  /// Playing. With [index], that track starts, inside [contextUri] when given
+  /// so Spotify continues through the album, playlist or Liked Songs. Without
+  /// [index] the whole [contextUri] plays, where Spotify picks the start.
+  Future<void> playSpotify({
+    required List<MusicMetadata> tracks,
+    int? index,
+    String? contextUri,
+    bool? shuffle,
+    NowPlayingType nowPlayingType = NowPlayingType.songs,
+  }) async {
+    if (index == null ? contextUri == null : index >= tracks.length) return;
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      if (shuffle != null) await _spotify.setShuffle(shuffle);
+      if (index == null) {
+        await _spotify.playUri(contextUri!);
+      } else if (contextUri == null) {
+        await _spotify.playUri(tracks[index].songId!);
+      } else {
+        try {
+          await _spotify.playContext(
+            contextUri,
+            tracks[index].originalSongIndex,
+          );
+        } on SpotifyException catch (error) {
+          // The Spotify app rejected the context itself (e.g. an unsupported
+          // collection URI): start the chosen track on its own instead.
+          if (error.code != 'remote_service' && error.code != 'unknown') {
+            rethrow;
+          }
+          await _spotify.playUri(tracks[index].songId!);
+        }
+      }
+      if (!_spotifyActive) {
+        // Stop rather than pause: a paused session keeps Retrofy's media
+        // notification, which would show a second, stale player on the lock
+        // screen and AOD next to Spotify's. Idle removes it.
+        await ref.read(libraryAudioHandlerProvider).stop();
+        ref.read(playbackBackendProvider.notifier).backend =
+            PlaybackBackend.spotify;
+      }
+      ref
+          .read(nowPlayingDetailsProvider.notifier)
+          .setSpotifyQueue(
+            nowPlayingType: nowPlayingType,
+            tracks: tracks,
+            index: index,
+          );
+    });
+    final error = state.error;
+    if (error != null) Error.throwWithStackTrace(error, state.stackTrace!);
+  }
 
   @override
   Future<void> build() async {
@@ -194,6 +285,7 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
   }
 
   Future<void> _play() async {
+    if (_spotifyActive) return _spotify.resume();
     final handler = ref.read(libraryAudioHandlerProvider);
     if (ref.read(audioPlayerProvider).playing &&
         handler.playbackState.value.errorCode == null &&
@@ -205,21 +297,29 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
   }
 
   Future<void> pause() async {
+    if (_spotifyActive) return _spotify.pause();
     await ref.read(libraryAudioHandlerProvider).pause();
   }
 
   Future<void> stop() async {
+    if (_spotifyActive) return _spotify.pause();
     await ref.read(libraryAudioHandlerProvider).stop();
   }
 
   Future<void> toggleShuffleMode() async {
     await setShuffleMode(
-      ref.read(libraryAudioHandlerProvider).logicalQueue.shuffleMode.next,
+      _spotifyActive
+          ? ref.read(nowPlayingDetailsProvider).shuffleMode.next
+          : ref.read(libraryAudioHandlerProvider).logicalQueue.shuffleMode.next,
     );
   }
 
   Future<void> setShuffleMode(PlaybackShuffleMode mode) async {
     state = await AsyncValue.guard(() async {
+      // Spotify shuffles a whole context; album shuffle maps to on.
+      if (_spotifyActive) {
+        return _spotify.setShuffle(mode != PlaybackShuffleMode.off);
+      }
       final handler = ref.read(libraryAudioHandlerProvider);
       await handler.setShuffleMode(mode.audioServiceMode);
     });
@@ -228,6 +328,7 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
   Future<void> shuffleAllSongs() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
+      await _useLibrary();
       //If Album or Playlist is being played then Switch to original List of Songs
       if (ref.read(nowPlayingDetailsProvider).nowPlayingType !=
               NowPlayingType.songs ||
@@ -250,6 +351,13 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
   Future<void> setLoopMode(LoopMode loopMode) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
+      if (_spotifyActive) {
+        return _spotify.setRepeat(switch (loopMode) {
+          LoopMode.off => SpotifyPlayerState.repeatOff,
+          LoopMode.one => SpotifyPlayerState.repeatOne,
+          LoopMode.all => SpotifyPlayerState.repeatAll,
+        });
+      }
       await ref.read(libraryAudioHandlerProvider).setRepeatMode(
         switch (loopMode) {
           LoopMode.off => AudioServiceRepeatMode.none,
@@ -267,6 +375,7 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
   }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
+      await _useLibrary();
       ref
           .read(nowPlayingDetailsProvider.notifier)
           .setNewMetadataList(
@@ -282,13 +391,16 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
 
   Future<void> nextSong() async {
     state = await AsyncValue.guard(
-      () => ref.read(libraryAudioHandlerProvider).skipToNext(),
+      () => _spotifyActive
+          ? _spotify.skipNext()
+          : ref.read(libraryAudioHandlerProvider).skipToNext(),
     );
   }
 
   Future<void> seekBackwards() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
+      if (_spotifyActive) return _spotify.skipPrevious();
       await ref.read(libraryAudioHandlerProvider).skipToPrevious();
     });
   }
@@ -304,6 +416,7 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
           songIndex >= albumDetail.albumSongs.length) {
         return;
       }
+      await _useLibrary();
       final nowPlayingDetails = ref.read(nowPlayingDetailsProvider);
 
       // If the album is already playing
@@ -334,6 +447,7 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
           songIndex >= playlistDetail.songs.length) {
         return;
       }
+      await _useLibrary();
       final nowPlayingDetails = ref.read(nowPlayingDetailsProvider);
 
       // If the playlist is already playing
@@ -366,6 +480,7 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
   Future<void> playSongFromLibrary(String songId) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
+      await _useLibrary();
       //If Album or Playlist is being played then Switch to original List of Songs
       if (ref.read(nowPlayingDetailsProvider).nowPlayingType !=
               NowPlayingType.songs ||
@@ -394,6 +509,7 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
   Future<void> togglePlayback() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
+      if (_spotifyActive) return _spotify.togglePlayback();
       final handler = ref.read(libraryAudioHandlerProvider);
       if (handler.recovering
           ? handler.wantsPlayback
@@ -405,13 +521,9 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
     });
   }
 
-  Future<void> seekForward() => seekToDuration(
-    ref.read(libraryAudioHandlerProvider).displayPosition.inSeconds + 1,
-  );
+  Future<void> seekForward() => seekToDuration(displayPosition.inSeconds + 1);
 
-  Future<void> seekBackward() => seekToDuration(
-    ref.read(libraryAudioHandlerProvider).displayPosition.inSeconds - 1,
-  );
+  Future<void> seekBackward() => seekToDuration(displayPosition.inSeconds - 1);
 
   Future<void> seekToDuration(int targetDurationInSeconds) async {
     state = await AsyncValue.guard(() async {
@@ -424,6 +536,9 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
       final target = duration > 0
           ? targetDurationInSeconds.clamp(0, duration ~/ 1000)
           : targetDurationInSeconds.clamp(0, 1 << 31);
+      if (_spotifyActive) {
+        return _spotify.seekTo(Duration(seconds: target));
+      }
       await ref
           .read(libraryAudioHandlerProvider)
           .seek(Duration(seconds: target));

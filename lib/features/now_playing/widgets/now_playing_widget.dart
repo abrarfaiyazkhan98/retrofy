@@ -1,107 +1,76 @@
 import 'package:classipod/core/extensions/build_context_extensions.dart';
 import 'package:classipod/core/theme/ipod_typography.dart';
 import 'package:classipod/core/widgets/marquee_text.dart';
-import 'package:classipod/features/music/album/providers/album_details_provider.dart';
 import 'package:classipod/features/now_playing/provider/now_playing_details_provider.dart';
-import 'package:classipod/features/now_playing/widgets/album_reflective_art.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+/// Track details laid over the full-screen artwork (see
+/// `NowPlayingArtworkScene`), anchored to the bottom where the scrim is
+/// darkest so the text stays readable on any cover.
 class NowPlayingWidget extends ConsumerWidget {
   const NowPlayingWidget({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final nowPlayingDetails = ref.watch(nowPlayingDetailsProvider);
-    final artworkPath = ref.watch(
-      songAlbumArtworkProvider(nowPlayingDetails.currentMetadata),
+    final metadata = nowPlayingDetails.currentMetadata;
+    final secondary = IpodTypography.metadata.copyWith(
+      color: CupertinoColors.white.withValues(alpha: 0.82),
     );
+    final rating = metadata?.rating ?? 0;
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 300),
-      layoutBuilder: (currentChild, previousChildren) => Stack(
-        alignment: Alignment.center,
-        children: [
-          for (final child in previousChildren)
-            HeroMode(enabled: false, child: child),
-          ?currentChild,
-        ],
-      ),
-      child: Row(
-        key: ValueKey(
-          "Now Playing-${nowPlayingDetails.currentMetadata?.identity}",
-        ),
+      duration: MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : const Duration(milliseconds: 300),
+      child: Column(
+        key: ValueKey('Now Playing-${metadata?.identity}'),
+        mainAxisAlignment: MainAxisAlignment.end,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            height: 200,
-            width: 150,
-            child: AlbumReflectiveArt(
-              imageWidth: 200,
-              tiltedImage: true,
-              thumbnailPath: artworkPath,
-              isOnDevice: nowPlayingDetails.currentMetadata?.isOnDevice ?? true,
-              heroTag:
-                  "${nowPlayingDetails.currentMetadata?.albumName}-${nowPlayingDetails.currentMetadata?.albumArtistName}",
+          MarqueeText(
+            metadata?.trackName ?? context.localization.unknownSong,
+            style: IpodTypography.title.copyWith(
+              color: CupertinoColors.white,
+              fontSize: 22,
             ),
           ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 10),
-                MarqueeText(
-                  nowPlayingDetails.currentMetadata?.trackName ??
-                      context.localization.unknownSong,
-                  style: IpodTypography.title,
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  nowPlayingDetails.currentMetadata?.getTrackArtistNames ??
-                      context.localization.unknownArtist,
-                  style: IpodTypography.metadata.copyWith(
-                    color: context.appSecondaryTextColor,
-                  ),
+          const SizedBox(height: 4),
+          Text(
+            metadata?.getTrackArtistNames ?? context.localization.unknownArtist,
+            style: secondary.copyWith(fontWeight: FontWeight.w600),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          Row(
+            children: [
+              Flexible(
+                child: Text(
+                  metadata?.albumName ?? context.localization.unknownAlbum,
+                  style: secondary,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 5),
-                Text(
-                  nowPlayingDetails.currentMetadata?.albumName ??
-                      context.localization.unknownAlbum,
-                  style: IpodTypography.metadata.copyWith(
-                    color: context.appSecondaryTextColor,
+              ),
+              Text(
+                "  ·  ${nowPlayingDetails.queuePosition + 1} "
+                "${context.localization.commonOfText} "
+                "${nowPlayingDetails.metadataList.length}",
+                style: secondary,
+              ),
+              if (rating != 0) ...[
+                const SizedBox(width: 8),
+                for (var i = 0; i < rating; i++)
+                  Icon(
+                    CupertinoIcons.star_fill,
+                    size: 12,
+                    color: context.appRatingIconColor,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if ((nowPlayingDetails.currentMetadata?.rating ?? 0) != 0)
-                  Row(
-                    children: List.generate(
-                      nowPlayingDetails.currentMetadata?.rating ?? 0,
-                      (index) => Padding(
-                        padding: const EdgeInsets.only(
-                          right: 2,
-                          top: 4,
-                          bottom: 4,
-                        ),
-                        child: Icon(
-                          CupertinoIcons.star_fill,
-                          size: 14,
-                          color: context.appRatingIconColor,
-                        ),
-                      ),
-                    ),
-                  ),
-                if ((nowPlayingDetails.currentMetadata?.rating ?? 0) == 0)
-                  const SizedBox(height: 22),
-                Text(
-                  "${nowPlayingDetails.queuePosition + 1} ${context.localization.commonOfText} ${nowPlayingDetails.metadataList.length}",
-                  style: IpodTypography.caption,
-                ),
-                const Spacer(),
               ],
-            ),
+            ],
           ),
+          const SizedBox(height: 8),
         ],
       ),
     );

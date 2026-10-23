@@ -198,6 +198,14 @@ class _SplitScreenPlaceholderState extends ConsumerState<SplitScreenPlaceholder>
               ? context.localization.tileValueOn
               : context.localization.tileValueOff,
         );
+      } else if (splitScreenType == SplitScreenType.ambientMode) {
+        splitScreenWidget = IconPreviewWidget(
+          titleText: context.localization.ambientModeSettingTitle,
+          icon: CupertinoIcons.moon,
+          contentText: currentSettings.ambientMode
+              ? context.localization.tileValueOn
+              : context.localization.tileValueOff,
+        );
       } else if (splitScreenType == SplitScreenType.showTutorialScreen) {
         splitScreenWidget = IconPreviewWidget(
           titleText: context.localization.showAppTutorialSettingTitle,

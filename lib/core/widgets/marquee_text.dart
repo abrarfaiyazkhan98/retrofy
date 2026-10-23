@@ -57,20 +57,56 @@ class MarqueeText extends StatefulWidget {
   State<MarqueeText> createState() => _MarqueeTextState();
 }
 
-class _MarqueeTextState extends State<MarqueeText> {
+class _MarqueeTextState extends State<MarqueeText> with WidgetsBindingObserver {
   final _scrollController = ScrollController();
   String? _endlessText;
   double? _originalTextWidth;
   double _textMinWidth = 0;
   Timer? _timer;
+  // Cancelled on dispose so a removed title leaves no timer behind.
+  Timer? _delayTimer;
   bool _running = false;
   int _counter = 0;
+
+  // The scroll timer runs only while the title is on screen in the
+  // foreground; otherwise it would wake the app every 50 ms for nothing.
+  bool _wantsTimer = false;
+  bool _tickersEnabled = true;
+  bool _appResumed = true;
+
+  bool get _canRun => _tickersEnabled && _appResumed;
+
+  void _pauseOrResume() {
+    if (_canRun) {
+      if (_wantsTimer && _timer == null) _setTimer();
+    } else {
+      _timer?.cancel();
+      _timer = null;
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _appResumed = state == AppLifecycleState.resumed;
+    _pauseOrResume();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // False while this title's route is covered by another screen.
+    _tickersEnabled = TickerMode.valuesOf(context).enabled;
+    _pauseOrResume();
+  }
 
   @override
   void initState() {
     super.initState();
 
     final WidgetsBinding binding = WidgetsBinding.instance;
+    binding.addObserver(this);
+    final lifecycle = binding.lifecycleState;
+    _appResumed = lifecycle == null || lifecycle == AppLifecycleState.resumed;
     binding.addPostFrameCallback(_initScroller);
   }
 
@@ -88,7 +124,9 @@ class _MarqueeTextState extends State<MarqueeText> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
+    _delayTimer?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
@@ -215,6 +253,9 @@ class _MarqueeTextState extends State<MarqueeText> {
   void _setTimer() {
     ///Cancel previous timer if it exists
     _timer?.cancel();
+    _timer = null;
+    _wantsTimer = true;
+    if (!_canRun) return;
 
     ///Reset [_running] to allow for updates on changed velocity
     _running = false;
@@ -329,11 +370,14 @@ class _MarqueeTextState extends State<MarqueeText> {
     }
   }
 
-  Future<void> _delayBefore() async {
+  Future<void> _delayBefore() {
     final Duration? delayBefore = widget.delayBefore;
-    if (delayBefore == null) return;
-
-    await Future<dynamic>.delayed(delayBefore);
+    if (delayBefore == null) return Future.value();
+    final completer = Completer<void>();
+    _delayTimer?.cancel();
+    // A cancelled delay never completes; _initScroller then simply stops.
+    _delayTimer = Timer(delayBefore, completer.complete);
+    return completer.future;
   }
 
   Duration _getDuration(double extent) {

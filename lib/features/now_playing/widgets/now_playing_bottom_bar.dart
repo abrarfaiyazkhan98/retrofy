@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:audio_service/audio_service.dart';
 import 'package:classipod/core/extensions/build_context_extensions.dart';
 import 'package:classipod/core/services/audio_player_service.dart';
+import 'package:classipod/core/services/playback/playback_backend.dart';
+import 'package:classipod/core/spotify/spotify_playback_controller.dart';
 import 'package:classipod/core/theme/ipod_typography.dart';
 import 'package:classipod/features/now_playing/provider/now_playing_details_provider.dart';
 import 'package:classipod/features/now_playing/widgets/scrubber_bar.dart';
@@ -27,10 +29,15 @@ class NowPlayingBottomBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final handler = ref.watch(libraryAudioHandlerProvider);
+    final spotify =
+        ref.watch(playbackBackendProvider) == PlaybackBackend.spotify
+        ? ref.read(spotifyPlaybackControllerProvider.notifier)
+        : null;
     return RepaintBoundary(
       child: StreamBuilder<PlaybackState>(
-        stream: handler.playbackState,
-        initialData: handler.playbackState.value,
+        stream: spotify?.playbackStates ?? handler.playbackState,
+        initialData:
+            spotify?.currentPlaybackState ?? handler.playbackState.value,
         builder: (context, snapshot) {
           final double totalDuration =
               (ref

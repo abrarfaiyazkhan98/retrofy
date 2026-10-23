@@ -141,6 +141,21 @@ MusicMetadata song(int index) => MusicMetadata(
 
 Future<void> flushEvents() => Future.delayed(const Duration(milliseconds: 10));
 
+/// Waits for [check] to hold. Session checkpoints are real Hive writes and
+/// flushes, which can outlast a fixed delay when the suite runs in parallel.
+Future<void> eventually(
+  bool Function() check, {
+  Duration timeout = const Duration(seconds: 2),
+}) async {
+  final deadline = DateTime.now().add(timeout);
+  while (!check()) {
+    if (DateTime.now().isAfter(deadline)) {
+      fail('condition not met within $timeout');
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late TestPlayer player;
@@ -294,6 +309,7 @@ void main() {
         await handler.select(0);
         await flushEvents();
         expect(player.playing, isTrue);
+        await eventually(() => PlaybackSessionStore(box).read() != null);
         expect(PlaybackSessionStore(box).read()!.ids.first, 'song-0');
         container.dispose();
         await flushEvents();

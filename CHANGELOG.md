@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.0.0 (Retrofy) — 2026-10-23
+
+First release of Retrofy, based on Classipod 2.1.0 by Aditya R.
+
+### New features
+
+- Rename the Android app to Retrofy (`com.abrarfaiyazkhan.retrofy`, version
+  1.0.0); local files and Subsonic keep working unchanged.
+- Add a Spotify menu: Playlists, Albums, Artists, Liked Songs, Recently
+  Played and Search, browsed with the click wheel in the existing iPod lists.
+- Sign in with Spotify through the browser using Authorization Code with
+  PKCE. Tokens are kept in Android Keystore-backed secure storage and
+  refreshed automatically; no Client Secret ships with the app.
+- Control the installed Spotify app with the official App Remote SDK. Now
+  Playing, the click wheel, scrubbing, shuffle and repeat drive Spotify while
+  it plays, and Spotify's track changes, progress and artwork are mirrored.
+- Cache Spotify artwork on disk.
+- Now Playing fills the iPod screen with the album cover, tinted overlays
+  and progress taken from its colours, and readable text on any cover.
+- Synced lyrics from tags, `.lrc` files and, for Spotify songs, LRCLIB
+  (credited); the sung line is highlighted and kept in view.
+- Watch Video opens a YouTube search for the song's official video.
+- Only Spotify's player shows on the lock screen while Spotify plays.
+- Optional Ambient Mode (Settings, off by default): after 30 s without input
+  while playing, Now Playing turns into a black screen with a small cover;
+  any tap returns. It keeps no wake lock and is not the phone's AOD.
+- Retrofy no longer wakes the CPU in the background: progress and scrolling
+  titles pause when the app is not visible.
+
 ## 2.1.0
 ### New features
 

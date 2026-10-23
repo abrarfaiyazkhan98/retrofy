@@ -48,6 +48,10 @@ class MusicMetadata extends HiveObject {
 
   bool get isSubsonic => serverId != null && remoteSongId != null;
 
+  /// Spotify tracks are identified by their `spotify:track:` URI and are
+  /// played by the Spotify app, never by the local audio engine.
+  bool get isSpotify => songId?.startsWith('spotify:') ?? false;
+
   final String? songId;
   final String? sourceVolume;
   final String? contentUri;
@@ -257,6 +261,9 @@ class MusicMetadata extends HiveObject {
   }
 
   AudioSource toAudioSource() {
+    if (isSpotify) {
+      throw StateError('Spotify tracks are played by the Spotify app');
+    }
     if (isSubsonic) {
       throw StateError('Subsonic tracks require a playback resolver');
     }

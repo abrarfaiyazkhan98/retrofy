@@ -31,6 +31,7 @@ enum _SettingsDisplayItems {
   volumeMode,
   splitScreenEnabled,
   immersiveMode,
+  ambientMode,
   showAppTutorial,
   librarySettings,
   resetSettings,
@@ -68,6 +69,8 @@ enum _SettingsDisplayItems {
         return context.localization.splitScreenSettingTitle;
       case immersiveMode:
         return context.localization.immersiveModeSettingTitle;
+      case ambientMode:
+        return context.localization.ambientModeSettingTitle;
       case showAppTutorial:
         return context.localization.showAppTutorialSettingTitle;
       case librarySettings:
@@ -169,6 +172,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
             .read(settingsPreferencesControllerProvider.notifier)
             .toggleImmersiveMode();
         break;
+      case _SettingsDisplayItems.ambientMode:
+        await ref
+            .read(settingsPreferencesControllerProvider.notifier)
+            .toggleAmbientMode();
+        break;
       case _SettingsDisplayItems.showAppTutorial:
         await ref
             .read(settingsPreferencesControllerProvider.notifier)
@@ -206,6 +214,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         return settingsState.splitScreenEnabled;
       case _SettingsDisplayItems.immersiveMode:
         return settingsState.immersiveMode;
+      case _SettingsDisplayItems.ambientMode:
+        return settingsState.ambientMode;
       default:
         return null;
     }
@@ -300,6 +310,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       case _SettingsDisplayItems.immersiveMode:
         ref.read(splitScreenControllerProvider.notifier).changeSplitScreenType =
             SplitScreenType.immersiveMode;
+        break;
+      case _SettingsDisplayItems.ambientMode:
+        ref.read(splitScreenControllerProvider.notifier).changeSplitScreenType =
+            SplitScreenType.ambientMode;
         break;
       case _SettingsDisplayItems.showAppTutorial:
         ref.read(splitScreenControllerProvider.notifier).changeSplitScreenType =

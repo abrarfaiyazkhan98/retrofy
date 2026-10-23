@@ -40,6 +40,11 @@ import 'package:classipod/features/settings/screens/library_settings_screen.dart
 import 'package:classipod/features/settings/screens/missing_tracks_screen.dart';
 import 'package:classipod/features/settings/screens/settings_preferences_screen.dart';
 import 'package:classipod/features/sleep_timer/screens/sleep_timer_screen.dart';
+import 'package:classipod/features/spotify/models/spotify_track_source.dart';
+import 'package:classipod/features/spotify/screens/spotify_browse_screen.dart';
+import 'package:classipod/features/spotify/screens/spotify_menu_screen.dart';
+import 'package:classipod/features/spotify/screens/spotify_search_screen.dart';
+import 'package:classipod/features/spotify/screens/spotify_tracks_screen.dart';
 import 'package:classipod/features/status_bar/controller/status_bar_transition_observer.dart';
 import 'package:classipod/features/status_bar/widgets/device_screen_content.dart';
 import 'package:classipod/features/status_bar/widgets/screen_page_content.dart';
@@ -80,7 +85,11 @@ enum Routes {
   genreSongs,
   genresSongsMoreOptions,
   search,
-  searchMoreOptions;
+  searchMoreOptions,
+  spotify,
+  spotifyBrowse,
+  spotifyTracks,
+  spotifySearch;
 
   @override
   String toString() {
@@ -154,6 +163,12 @@ enum Routes {
       case search:
         return context.localization.searchScreenTitle;
       case searchMoreOptions:
+        return context.localization.searchScreenTitle;
+      case spotify:
+      case spotifyBrowse:
+      case spotifyTracks:
+        return context.localization.spotifyTitle;
+      case spotifySearch:
         return context.localization.searchScreenTitle;
     }
   }
@@ -359,6 +374,55 @@ final routerProvider = Provider(
                           child: SplitScreenPlaceholder(
                             splitScreenController: SplitScreenViewController(),
                             child: const SleepTimerScreen(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  GoRoute(
+                    path: Routes.spotify.toString(),
+                    name: Routes.spotify.name,
+                    parentNavigatorKey: menuNavigatorKey,
+                    pageBuilder: (context, state) =>
+                        const CupertinoPage(child: SpotifyMenuScreen()),
+                    routes: [
+                      GoRoute(
+                        path: Routes.spotifyBrowse.name,
+                        name: Routes.spotifyBrowse.name,
+                        parentNavigatorKey: rootNavigatorKey,
+                        pageBuilder: (context, state) => CupertinoPage(
+                          key: state.pageKey,
+                          child: ScreenPageContent(
+                            child: SpotifyBrowseScreen(
+                              source: state.extra is SpotifyBrowseSource
+                                  ? state.extra! as SpotifyBrowseSource
+                                  : const SpotifyBrowseSource.playlists(),
+                            ),
+                          ),
+                        ),
+                      ),
+                      GoRoute(
+                        path: Routes.spotifyTracks.name,
+                        name: Routes.spotifyTracks.name,
+                        parentNavigatorKey: rootNavigatorKey,
+                        pageBuilder: (context, state) => CupertinoPage(
+                          key: state.pageKey,
+                          child: ScreenPageContent(
+                            child: state.extra is SpotifyTrackSource
+                                ? SpotifyTracksScreen(
+                                    source: state.extra! as SpotifyTrackSource,
+                                  )
+                                : const PageNotFoundScreen(),
+                          ),
+                        ),
+                      ),
+                      GoRoute(
+                        path: Routes.spotifySearch.name,
+                        name: Routes.spotifySearch.name,
+                        parentNavigatorKey: rootNavigatorKey,
+                        pageBuilder: (context, state) => const CupertinoPage(
+                          child: ScreenPageContent(
+                            child: SpotifySearchScreen(),
                           ),
                         ),
                       ),

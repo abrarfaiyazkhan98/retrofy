@@ -85,7 +85,10 @@ class _ScrubberBarState extends ConsumerState<ScrubberBar> {
 
   void _step(int delta) => _preview(
     (position ??
-            ref.read(libraryAudioHandlerProvider).displayPosition.inSeconds) +
+            ref
+                .read(audioPlayerServiceProvider.notifier)
+                .displayPosition
+                .inSeconds) +
         delta,
   );
 
@@ -93,7 +96,7 @@ class _ScrubberBarState extends ConsumerState<ScrubberBar> {
     if (!widget.active || !widget.max.isFinite || widget.max <= 0) return;
     _origin ??=
         _committing ??
-        ref.read(libraryAudioHandlerProvider).displayPosition.inSeconds;
+        ref.read(audioPlayerServiceProvider.notifier).displayPosition.inSeconds;
     _target = target.clamp(0, widget.max.floor());
     _revision++;
     _notify();

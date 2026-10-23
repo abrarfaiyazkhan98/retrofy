@@ -19,7 +19,7 @@
         android:icon="@mipmap/ic_launcher"
         android:enableOnBackInvokedCallback="true">
         <activity
-            android:name="com.ryanheise.audioservice.AudioServiceActivity"
+            android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:taskAffinity=""
@@ -38,6 +38,39 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <!-- Receives the Spotify OAuth redirect from the browser. The scheme
+             and host must match SpotifyConfig.defaultRedirectUri and the
+             redirect URI registered on the Spotify Developer Dashboard. -->
+        <activity
+            android:name=".SpotifyAuthRedirectActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="retrofy" android:host="spotify-callback" />
+            </intent-filter>
+        </activity>
+        <!-- Spotify auth library 5.x requires its receiver to declare the
+             redirect URI it is given (AuthorizationClient checks this before
+             every request). It uses its own address so it never competes with
+             SpotifyAuthRedirectActivity; register it on the Spotify dashboard
+             next to retrofy://spotify-callback. -->
+        <activity
+            android:name="com.spotify.sdk.android.auth.browser.RedirectUriReceiverActivity"
+            android:exported="true"
+            tools:node="merge">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="retrofy" android:host="spotify-app-remote" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
@@ -74,6 +107,12 @@
 
          In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
     <queries>
+        <!-- Lets url_launcher find a browser for the Spotify login page. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT" />
             <data android:mimeType="text/plain" />

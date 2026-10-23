@@ -5,8 +5,8 @@ import 'package:classipod/core/extensions/build_context_extensions.dart';
 import 'package:classipod/core/services/audio_player_service.dart';
 import 'package:classipod/core/theme/ipod_gradients.dart';
 import 'package:classipod/core/widgets/subtle_reflection.dart';
+import 'package:classipod/features/now_playing/widgets/now_playing_artwork_scene.dart';
 import 'package:classipod/features/settings/controller/settings_preferences_controller.dart';
-import 'package:classipod/features/settings/models/volume_mode.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:volume_controller/volume_controller.dart';
@@ -26,10 +26,7 @@ class _VolumeBarState extends ConsumerState<VolumeBar> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final volumeMode = ref
-          .read(settingsPreferencesControllerProvider)
-          .volumeMode;
-      if (volumeMode == VolumeMode.app) {
+      if (ref.read(appVolumeActiveProvider)) {
         _volumeSubscription = ref
             .read(audioPlayerProvider)
             .volumeStream
@@ -97,14 +94,14 @@ class _VolumeBarState extends ConsumerState<VolumeBar> {
                       width: _volumeLevel * constraints.maxWidth,
                       margin: const EdgeInsets.symmetric(horizontal: 8),
                       duration: const Duration(milliseconds: 10),
-                      child: const SubtleReflection(
+                      child: SubtleReflection(
                         height: 20,
                         child: SizedBox(
                           width: double.infinity,
                           height: 20,
                           child: DecoratedBox(
                             decoration: BoxDecoration(
-                              gradient: IpodGradients.progress,
+                              gradient: _progress(context),
                             ),
                           ),
                         ),
@@ -124,4 +121,12 @@ class _VolumeBarState extends ConsumerState<VolumeBar> {
       ),
     );
   }
+}
+
+/// The cover's accent on Now Playing; the classic blue elsewhere.
+LinearGradient _progress(BuildContext context) {
+  final palette = ArtworkAccent.maybeOf(context);
+  return palette == null
+      ? IpodGradients.progress
+      : ArtworkAccent.progressOf(palette);
 }

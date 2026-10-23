@@ -114,6 +114,13 @@ class SettingsPreferencesRepository {
         AppTheme.light.name;
   }
 
+  bool getAmbientMode() {
+    return _sharedPreferencesWithCache.getBool(
+          SharedPreferencesKeys.ambientMode.name,
+        ) ??
+        false;
+  }
+
   bool getImmersiveMode() {
     return _sharedPreferencesWithCache.getBool(
           SharedPreferencesKeys.immersiveMode.name,
@@ -205,6 +212,13 @@ class SettingsPreferencesRepository {
     return _sharedPreferencesWithCache.setBool(
       SharedPreferencesKeys.splitScreenEnabled.name,
       isSplitScreenEnabled,
+    );
+  }
+
+  Future<void> setAmbientMode({required bool isAmbientModeEnabled}) async {
+    return _sharedPreferencesWithCache.setBool(
+      SharedPreferencesKeys.ambientMode.name,
+      isAmbientModeEnabled,
     );
   }
 
