@@ -125,6 +125,40 @@ void main() {
       expect(request.headers['User-Agent'], startsWith('Retrofy/'));
     });
 
+    test('plain-only entries borrow a synced entry of the same length', () {
+      // Good Life on Graduation: the exact entry is plain only; the single
+      // with the same 3:27 length is synced, a live version is not used.
+      respond = () {
+        if (requests.last.url.path == '/api/get') {
+          return http.Response(
+            jsonEncode({'plainLyrics': 'Welcome to the good life'}),
+            200,
+          );
+        }
+        return http.Response(
+          jsonEncode([
+            {'duration': 286.0, 'syncedLyrics': '[00:01.00] live'},
+            {'duration': 160.0, 'syncedLyrics': '[00:01.00] single'},
+          ]),
+          200,
+        );
+      };
+      return read(container(), spotifyTrack()).then((lyrics) {
+        expect(lyrics!.isSynced, isTrue);
+        expect(lyrics.lines.single.text, 'single');
+        expect(requests.last.url.path, '/api/search');
+      });
+    });
+
+    test('plain lyrics stay when no synced entry matches', () async {
+      respond = () => requests.last.url.path == '/api/get'
+          ? http.Response(jsonEncode({'plainLyrics': 'just words'}), 200)
+          : http.Response('[]', 200);
+      final lyrics = await read(container(), spotifyTrack());
+      expect(lyrics!.isSynced, isFalse);
+      expect(lyrics.plain, 'just words');
+    });
+
     test('a missing song is remembered for the session', () async {
       respond = () =>
           http.Response('{"name":"TrackNotFound","statusCode":404}', 404);
