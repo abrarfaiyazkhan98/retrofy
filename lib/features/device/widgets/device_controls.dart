@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:classipod/core/constants/assets.dart';
 import 'package:classipod/core/constants/constants.dart';
@@ -166,6 +167,14 @@ class _DeviceControlsState extends ConsumerState<DeviceControls> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final double screenWidth = constraints.maxWidth + 40;
+        // The size setting picks the wheel's width; the layout may cap it
+        // so the display keeps its share of the height.
+        final double preferred = screenWidth * clickWheelRadiusRatio;
+        final double diameter = constraints.hasBoundedHeight
+            ? math.min(preferred, constraints.maxHeight)
+            : preferred;
+        final double selectDiameter =
+            screenWidth * selectButtonRadiusRatio * diameter / preferred;
 
         return GestureDetector(
           onPanDown: (_) =>
@@ -176,13 +185,13 @@ class _DeviceControlsState extends ConsumerState<DeviceControls> {
               ref.read(clickWheelGestureProvider.notifier).active = false,
           onPanUpdate: (dragUpdateDetails) => onClickWheelScroll(
             dragUpdateDetails: dragUpdateDetails,
-            radius: (screenWidth * clickWheelRadiusRatio) / 2,
+            radius: diameter / 2,
             smallThresholdRotationalChange: smallThresholdRotationalChange,
             bigThresholdRotationalChange: bigThresholdRotationalChange,
           ),
           child: Container(
-            height: screenWidth * clickWheelRadiusRatio,
-            width: screenWidth * clickWheelRadiusRatio,
+            height: diameter,
+            width: diameter,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
@@ -254,7 +263,7 @@ class _DeviceControlsState extends ConsumerState<DeviceControls> {
                             .read(deviceButtonsServiceProvider.notifier)
                             .setDeviceAction(DeviceAction.longPressEnd),
                         child: SizedBox(
-                          height: screenWidth * 0.2175,
+                          height: selectDiameter,
                           child: ColoredBox(
                             color: deviceColorStyle.controlBackgroundColor,
                             child: Align(
@@ -282,8 +291,8 @@ class _DeviceControlsState extends ConsumerState<DeviceControls> {
                           .read(deviceButtonsServiceProvider.notifier)
                           .setDeviceAction(DeviceAction.longPressEnd),
                       child: SizedBox(
-                        height: screenWidth * selectButtonRadiusRatio,
-                        width: screenWidth * selectButtonRadiusRatio,
+                        height: selectDiameter,
+                        width: selectDiameter,
                         child: DecoratedBox(
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
@@ -317,7 +326,7 @@ class _DeviceControlsState extends ConsumerState<DeviceControls> {
                             .read(deviceButtonsServiceProvider.notifier)
                             .setDeviceAction(DeviceAction.longPressEnd),
                         child: SizedBox(
-                          height: screenWidth * selectButtonRadiusRatio,
+                          height: selectDiameter,
                           child: ColoredBox(
                             color: deviceColorStyle.controlBackgroundColor,
                             child: Align(

@@ -1,5 +1,6 @@
 import 'package:classipod/core/constants/assets.dart';
 import 'package:classipod/core/constants/keys.dart';
+import 'package:classipod/features/device/models/device_layout.dart';
 import 'package:classipod/features/device/widgets/device_controls.dart';
 import 'package:classipod/features/device/widgets/device_screen.dart';
 import 'package:classipod/features/settings/controller/settings_preferences_controller.dart';
@@ -99,13 +100,26 @@ class DeviceFrame extends ConsumerWidget {
                   maxHeight: 960,
                   maxWidth: 450,
                 ),
-                child: Column(
-                  children: [
-                    DeviceScreen(key: deviceScreenGlobalKey, child: child),
-                    const Spacer(flex: 2),
-                    DeviceControls(key: deviceControlsGlobalKey),
-                    const Spacer(),
-                  ],
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final layout = DeviceLayout.fit(constraints.maxHeight);
+                    return Column(
+                      children: [
+                        DeviceScreen(
+                          key: deviceScreenGlobalKey,
+                          height: layout.screenHeight,
+                          child: child,
+                        ),
+                        SizedBox(height: layout.gap),
+                        SizedBox(
+                          height: layout.wheelHeight,
+                          child: Center(
+                            child: DeviceControls(key: deviceControlsGlobalKey),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ),
