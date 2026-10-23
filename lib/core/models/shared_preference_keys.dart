@@ -13,6 +13,7 @@ enum SharedPreferencesKeys {
   artworkGlow,
   animationQuality,
   musicSource,
+  spotifySessionActive,
   splitScreenEnabled,
   immersiveMode,
   ambientMode,

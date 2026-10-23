@@ -4,11 +4,14 @@ import 'package:audio_service/audio_service.dart';
 import 'package:classipod/core/constants/keys.dart';
 import 'package:classipod/core/models/music_metadata.dart';
 import 'package:classipod/core/models/playback_shuffle_mode.dart';
+import 'package:classipod/core/models/shared_preference_keys.dart';
 import 'package:classipod/core/providers/filtered_audio_files_provider.dart';
+import 'package:classipod/core/providers/shared_preferences_with_cache_provider.dart';
 import 'package:classipod/core/services/playback/library_audio_handler.dart';
 import 'package:classipod/core/services/playback/playback_backend.dart';
 import 'package:classipod/core/services/playback/playback_session.dart';
 import 'package:classipod/core/spotify/spotify_auth.dart';
+import 'package:classipod/core/spotify/spotify_auth_controller.dart';
 import 'package:classipod/core/spotify/spotify_playback_controller.dart';
 import 'package:classipod/core/spotify/spotify_remote.dart';
 import 'package:classipod/core/subsonic/subsonic_controller.dart';
@@ -99,6 +102,7 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
   /// The Spotify queue is cleared because the local engine cannot play it.
   Future<void> _useLibrary() async {
     if (!_spotifyActive) return;
+    unawaited(_rememberSpotifySession(active: false));
     ref.read(playbackBackendProvider.notifier).backend =
         PlaybackBackend.library;
     ref
@@ -110,6 +114,47 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
     try {
       await _spotify.pause();
     } catch (_) {}
+  }
+
+  /// Whether Spotify was what Retrofy played last, so a restarted Retrofy
+  /// can show Spotify's playback again instead of an empty Now Playing.
+  Future<void> _rememberSpotifySession({required bool active}) async {
+    await ref
+        .read(sharedPreferencesWithCacheProvider)
+        .value
+        ?.setBool(SharedPreferencesKeys.spotifySessionActive.name, active);
+  }
+
+  /// After Retrofy restarts, reconnects Now Playing to the Spotify app when
+  /// Spotify was the last thing played through Retrofy. Spotify's own player
+  /// state then describes the track; nothing starts or stops playing.
+  Future<void> resumeSpotifySession() async {
+    final active = ref
+        .read(sharedPreferencesWithCacheProvider)
+        .value
+        ?.getBool(SharedPreferencesKeys.spotifySessionActive.name);
+    if (active != true || _spotifyActive) return;
+    try {
+      final auth = await ref.read(spotifyAuthControllerProvider.future);
+      if (!auth.signedIn) return;
+    } catch (_) {
+      return;
+    }
+    ref.read(playbackBackendProvider.notifier).backend =
+        PlaybackBackend.spotify;
+    ref
+        .read(nowPlayingDetailsProvider.notifier)
+        .setSpotifyQueue(
+          nowPlayingType: NowPlayingType.songs,
+          tracks: const [],
+        );
+    try {
+      await _spotify.ensureConnected();
+    } catch (error) {
+      // The Spotify app may be missing or signed out; Now Playing shows
+      // the reason the next time Spotify is used.
+      debugPrint('Spotify session not resumed: $error');
+    }
   }
 
   /// Starts [track], inside [contextUri] when given so Spotify continues
@@ -193,6 +238,7 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
             tracks: tracks,
             index: index,
           );
+      unawaited(_rememberSpotifySession(active: true));
     });
     final error = state.error;
     if (error != null) Error.throwWithStackTrace(error, state.stackTrace!);

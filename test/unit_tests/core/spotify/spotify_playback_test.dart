@@ -6,6 +6,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:classipod/core/models/music_metadata.dart';
 import 'package:classipod/core/models/playback_shuffle_mode.dart';
 import 'package:classipod/core/providers/filtered_audio_files_provider.dart';
+import 'package:classipod/core/providers/shared_preferences_with_cache_provider.dart';
 import 'package:classipod/core/services/audio_player_service.dart';
 import 'package:classipod/core/services/playback/library_audio_handler.dart';
 import 'package:classipod/core/services/playback/playback_backend.dart';
@@ -20,6 +21,9 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 class FakeSpotifyRemote implements SpotifyRemote {
   final controller = StreamController<SpotifyRemoteEvent>.broadcast();
@@ -292,6 +296,8 @@ void main() {
   }
 
   setUp(() async {
+    SharedPreferencesAsyncPlatform.instance =
+        InMemorySharedPreferencesAsync.empty();
     remote = FakeSpotifyRemote()..clock = () => now;
     remote.contexts[contextUri] = [
       for (var i = 0; i <= 6; i++)
@@ -765,6 +771,44 @@ void main() {
       await settle();
       expect(remote.calls.last, 'disconnect');
       expect(spotify().connection, SpotifyConnection.disconnected);
+    });
+  });
+
+  group('spotify_session_resume', () {
+    late SharedPreferencesWithCache prefs;
+    const key = 'spotifySessionActive';
+
+    setUp(() async {
+      prefs = await container.read(sharedPreferencesWithCacheProvider.future);
+    });
+
+    test('playing Spotify is remembered until local music plays', () async {
+      await playPlaylistTrack(1);
+      await settle();
+      expect(prefs.getBool(key), isTrue);
+      await service().setAudioSource(musicMetadataList: [localTrack('one')]);
+      await settle();
+      expect(prefs.getBool(key), isFalse);
+    });
+
+    test('a restarted Retrofy shows what Spotify is playing', () async {
+      await prefs.setBool(key, true);
+      await service().resumeSpotifySession();
+      expect(backend(), PlaybackBackend.spotify);
+      expect(remote.calls, ['connect']);
+      expect(
+        remote.calls.where((c) => c.startsWith('play')),
+        isEmpty,
+        reason: 'resuming never starts playback',
+      );
+      await emitState('x');
+      expect(nowPlaying().currentMetadata?.trackName, 'Remote x');
+    });
+
+    test('without a Spotify session nothing reconnects', () async {
+      await service().resumeSpotifySession();
+      expect(backend(), PlaybackBackend.library);
+      expect(remote.calls, isEmpty);
     });
   });
 
