@@ -62,13 +62,48 @@ class FakeSpotifyRemote implements SpotifyRemote {
     if (connectError != null) throw SpotifyException(connectError!);
   }
 
+  /// Tracks of each context in the order the Spotify app plays them, so
+  /// commands report the track Spotify would start, as the real app does.
+  final contexts = <String, List<String>>{};
+
+  /// Track URIs Spotify will not start on their own; it keeps playing
+  /// [stuckOn] instead.
+  final refused = <String>{};
+  String stuckOn = 'spotify:track:other';
+  DateTime Function() clock = DateTime.now;
+
+  void _report(String? trackUri) {
+    if (trackUri == null) return;
+    scheduleMicrotask(
+      () => controller.add(
+        SpotifyPlayerStateEvent(
+          SpotifyPlayerState(
+            trackUri: trackUri,
+            isPaused: false,
+            receivedAt: clock(),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Future<void> disconnect() => _record('disconnect');
   @override
-  Future<void> play(String uri) => _record('play $uri');
+  Future<void> play(String uri) async {
+    await _record('play $uri');
+    // A whole context may start shuffled, so only single tracks report.
+    if (uri.startsWith('spotify:track:')) {
+      _report(refused.contains(uri) ? stuckOn : uri);
+    }
+  }
+
   @override
-  Future<void> skipToIndex(String contextUri, int index) =>
-      _record('skipToIndex $contextUri $index');
+  Future<void> skipToIndex(String contextUri, int index) async {
+    await _record('skipToIndex $contextUri $index');
+    _report(contexts[contextUri]?.elementAtOrNull(index));
+  }
+
   @override
   Future<void> resume() => _record('resume');
   @override
@@ -239,7 +274,16 @@ void main() {
   }
 
   setUp(() async {
-    remote = FakeSpotifyRemote();
+    remote = FakeSpotifyRemote()..clock = () => now;
+    remote.contexts[contextUri] = [
+      for (var i = 0; i <= 6; i++)
+        playlist
+            .firstWhere(
+              (track) => track.originalSongIndex == i,
+              orElse: () => spotifyTrack('hidden$i', i),
+            )
+            .songId!,
+    ];
     player = LocalPlayer();
     now = DateTime(2026, 1, 1, 12);
     final handler = LibraryAudioHandler(player);
@@ -329,6 +373,109 @@ void main() {
       await playPlaylistTrack(0);
       await playPlaylistTrack(1);
       expect(remote.calls.where((call) => call == 'connect'), hasLength(1));
+    });
+  });
+
+  group('spotify_selection_accuracy', () {
+    List<MusicMetadata> bigPlaylist(int length) => [
+      for (var i = 0; i < length; i++) spotifyTrack('t$i', i),
+    ];
+
+    for (final length in [1, 10, 50, 100, 500]) {
+      test('first, middle and last of $length tracks play exactly', () async {
+        final tracks = bigPlaylist(length);
+        const uri = 'spotify:playlist:big';
+        remote.contexts[uri] = [for (final track in tracks) track.songId!];
+        for (final index in {0, length ~/ 2, length - 1}) {
+          await service().playSpotify(
+            tracks: tracks,
+            index: index,
+            contextUri: uri,
+          );
+          expect(remote.calls.last, 'skipToIndex $uri $index');
+          expect(spotify().player?.trackUri, tracks[index].songId);
+          expect(nowPlaying().currentMetadata, tracks[index]);
+        }
+        expect(remote.calls.where((call) => call.startsWith('play ')), isEmpty);
+      });
+    }
+
+    test('a context that starts another track is corrected', () async {
+      // The Spotify app leaves out an item the Web API lists (e.g. an
+      // unplayable track), so every later index lands one track too far.
+      remote.contexts[contextUri] = [
+        for (final id in ['a', 'h1', 'h2', 'h3', 'h4', 'b', 'c'])
+          'spotify:track:$id',
+      ]..removeAt(1);
+
+      await playPlaylistTrack(1);
+
+      expect(remote.calls.sublist(1), [
+        'skipToIndex spotify:playlist:p 5',
+        'play spotify:track:b',
+      ]);
+      expect(spotify().player?.trackUri, 'spotify:track:b');
+      expect(nowPlaying().currentMetadata, playlist[1]);
+    });
+
+    test('Spotify refusing the chosen track is reported, not hidden', () async {
+      remote.contexts[contextUri] = List.filled(7, 'spotify:track:other');
+      remote.refused.add('spotify:track:c');
+
+      expect(await errorCode(() => playPlaylistTrack(2)), 'wrong_track');
+      expect(
+        nowPlaying().currentMetadata,
+        isNot(playlist[2]),
+        reason: 'Now Playing must not claim the chosen track plays',
+      );
+    });
+
+    test('shuffle stays as it is when a track is tapped', () async {
+      await emitState('a', shuffling: true);
+      await playPlaylistTrack(2);
+      expect(remote.calls.where((call) => call.startsWith('setShuffle')), []);
+      expect(spotify().player?.trackUri, 'spotify:track:c');
+      expect(nowPlaying().currentMetadata, playlist[2]);
+    });
+
+    test('a report from before the request is not a confirmation', () async {
+      await emitState('c');
+      final controller = container.read(
+        spotifyPlaybackControllerProvider.notifier,
+      );
+      final since = now.add(const Duration(seconds: 1));
+      expect(
+        await controller.confirmTrack(
+          'spotify:track:c',
+          since: since,
+          timeout: const Duration(milliseconds: 10),
+        ),
+        isNull,
+        reason: 'nothing reported since the request: outcome unknown',
+      );
+      expect(
+        await controller.confirmTrack(
+          'spotify:track:c',
+          since: now,
+          timeout: const Duration(milliseconds: 10),
+        ),
+        'spotify:track:c',
+      );
+    });
+
+    test('switching playlists plays the track of the newest one', () async {
+      const other = 'spotify:playlist:other';
+      final otherTracks = [spotifyTrack('x', 0), spotifyTrack('y', 1)];
+      remote.contexts[other] = ['spotify:track:x', 'spotify:track:y'];
+      await playPlaylistTrack(2);
+      await service().playSpotify(
+        tracks: otherTracks,
+        index: 1,
+        contextUri: other,
+      );
+      expect(spotify().player?.trackUri, 'spotify:track:y');
+      expect(nowPlaying().currentMetadata, otherTracks[1]);
+      expect(nowPlaying().metadataList, otherTracks);
     });
   });
 

@@ -24,6 +24,7 @@ String spotifyErrorText(BuildContext context, Object? error) {
     'storage' => l10n.spotifyErrorSignInFailed,
     'forbidden' || 'not_found' => l10n.spotifyErrorUnavailable,
     'not_configured' => l10n.spotifyNotConfigured,
+    'wrong_track' => l10n.spotifyErrorWrongTrack,
     _ => l10n.spotifyErrorGeneric,
   };
 }

@@ -803,6 +803,10 @@
   "@spotifyErrorUnavailable": {
     "description": "Shown when Spotify does not allow this content to be listed"
   },
+  "spotifyErrorWrongTrack": "Spotify played a different song",
+  "@spotifyErrorWrongTrack": {
+    "description": "Shown when Spotify starts another song than the one chosen, even after Retrofy asked for the chosen song directly"
+  },
   "spotifyErrorGeneric": "Spotify request failed",
   "@spotifyErrorGeneric": {
     "description": "Shown for any other Spotify error"

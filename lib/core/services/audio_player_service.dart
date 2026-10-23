@@ -119,6 +119,43 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
   /// Playing. With [index], that track starts, inside [contextUri] when given
   /// so Spotify continues through the album, playlist or Liked Songs. Without
   /// [index] the whole [contextUri] plays, where Spotify picks the start.
+  /// Starts [track], inside [contextUri] when given so Spotify continues
+  /// through it, then checks that Spotify really plays that track. A context
+  /// that starts a different track is replaced by the chosen track on its
+  /// own; if Spotify still plays something else the caller gets
+  /// `wrong_track` rather than a silent substitution.
+  Future<void> _playSpotifyTrack(
+    MusicMetadata track,
+    String? contextUri,
+  ) async {
+    final uri = track.songId!;
+    if (contextUri != null) {
+      try {
+        final since = _spotify.now;
+        await _spotify.playContext(contextUri, track.originalSongIndex);
+        final reported = await _spotify.confirmTrack(uri, since: since);
+        if (reported == null || reported == uri) return;
+        debugPrint(
+          'Spotify started $reported instead of $uri at '
+          '${track.originalSongIndex} of $contextUri; playing it directly',
+        );
+      } on SpotifyException catch (error) {
+        // The Spotify app rejected the context itself (e.g. an unsupported
+        // collection URI): start the chosen track on its own instead.
+        if (error.code != 'remote_service' && error.code != 'unknown') {
+          rethrow;
+        }
+      }
+    }
+    final since = _spotify.now;
+    await _spotify.playUri(uri);
+    final reported = await _spotify.confirmTrack(uri, since: since);
+    if (reported != null && reported != uri) {
+      debugPrint('Spotify plays $reported after requesting $uri');
+      throw const SpotifyException('wrong_track');
+    }
+  }
+
   Future<void> playSpotify({
     required List<MusicMetadata> tracks,
     int? index,
@@ -132,22 +169,8 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
       if (shuffle != null) await _spotify.setShuffle(shuffle);
       if (index == null) {
         await _spotify.playUri(contextUri!);
-      } else if (contextUri == null) {
-        await _spotify.playUri(tracks[index].songId!);
       } else {
-        try {
-          await _spotify.playContext(
-            contextUri,
-            tracks[index].originalSongIndex,
-          );
-        } on SpotifyException catch (error) {
-          // The Spotify app rejected the context itself (e.g. an unsupported
-          // collection URI): start the chosen track on its own instead.
-          if (error.code != 'remote_service' && error.code != 'unknown') {
-            rethrow;
-          }
-          await _spotify.playUri(tracks[index].songId!);
-        }
+        await _playSpotifyTrack(tracks[index], contextUri);
       }
       if (!_spotifyActive) {
         // Stop rather than pause: a paused session keeps Retrofy's media

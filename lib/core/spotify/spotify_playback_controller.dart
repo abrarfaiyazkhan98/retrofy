@@ -104,6 +104,8 @@ class SpotifyPlaybackController extends Notifier<SpotifyPlaybackState> {
   /// event and twice a second while playing, interpolating between events.
   Stream<PlaybackState> get playbackStates => _playbackStates.stream;
 
+  DateTime get now => _now();
+
   Duration get position => state.player?.positionAt(_now()) ?? Duration.zero;
 
   PlaybackState get currentPlaybackState {
@@ -279,6 +281,49 @@ class SpotifyPlaybackController extends Notifier<SpotifyPlaybackState> {
     if (uri.startsWith('spotify:track:')) _requireOnDemand();
     return remote.play(uri);
   });
+
+  /// Waits for Spotify to report [trackUri] as the current track and returns
+  /// the track it reports last. Reports received before [since] (the play
+  /// request) do not count. Another track is accepted as the answer only
+  /// after [grace], since Spotify may report the old track once more while
+  /// switching. Null means Spotify reported nothing new in time, so the
+  /// outcome is unknown rather than wrong.
+  Future<String?> confirmTrack(
+    String trackUri, {
+    required DateTime since,
+    Duration timeout = const Duration(seconds: 4),
+    Duration grace = const Duration(seconds: 1),
+  }) {
+    bool fresh() => !(state.player?.receivedAt.isBefore(since) ?? true);
+    if (fresh() && state.player?.trackUri == trackUri) {
+      return Future.value(trackUri);
+    }
+    final result = Completer<String?>();
+    Timer? settle;
+    void finish(String? uri) {
+      if (!result.isCompleted) result.complete(uri);
+    }
+
+    final subscription = _remote.events.listen((event) {
+      if (event is! SpotifyPlayerStateEvent) return;
+      if (event.state.trackUri == trackUri) return finish(trackUri);
+      settle?.cancel();
+      settle = Timer(grace, () => finish(event.state.trackUri));
+    }, onDone: () => finish(null));
+    if (fresh()) {
+      final reported = state.player?.trackUri;
+      settle = Timer(grace, () => finish(reported));
+    }
+    final deadline = Timer(
+      timeout,
+      () => finish(fresh() ? state.player?.trackUri : null),
+    );
+    return result.future.whenComplete(() {
+      settle?.cancel();
+      deadline.cancel();
+      unawaited(subscription.cancel());
+    });
+  }
 
   Future<void> resume() => _command((remote) => remote.resume());
 
