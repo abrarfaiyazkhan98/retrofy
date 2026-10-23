@@ -416,7 +416,8 @@ class _ImmersiveAmbientViewState extends ConsumerState<ImmersiveAmbientView>
   }
 }
 
-/// The cover, always sharp, crossfading between tracks.
+/// The whole cover, always sharp and never cropped, crossfading between
+/// tracks.
 class _Artwork extends StatelessWidget {
   final ImageProvider provider;
   final String? identity;
@@ -454,12 +455,12 @@ class _Artwork extends StatelessWidget {
           child: Image(
             key: ValueKey(identity),
             image: ResizeImage.resizeIfNeeded(cacheWidth, null, provider),
-            fit: BoxFit.cover,
+            fit: BoxFit.contain,
             width: double.infinity,
             height: double.infinity,
             gaplessPlayback: true,
             errorBuilder: (_, _, _) =>
-                Image.asset(Assets.defaultAlbumCoverImage, fit: BoxFit.cover),
+                Image.asset(Assets.defaultAlbumCoverImage, fit: BoxFit.contain),
           ),
         ),
       ),

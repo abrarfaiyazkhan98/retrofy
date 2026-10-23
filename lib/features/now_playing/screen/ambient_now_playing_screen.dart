@@ -140,7 +140,7 @@ class _LowPowerAmbientViewState extends ConsumerState<_LowPowerAmbientView>
                       ),
                       width: 96,
                       height: 96,
-                      fit: BoxFit.cover,
+                      fit: BoxFit.contain,
                       errorBuilder: (_, _, _) => Image.asset(
                         Assets.defaultAlbumCoverImage,
                         width: 96,

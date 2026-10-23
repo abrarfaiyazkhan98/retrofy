@@ -35,8 +35,8 @@ class ArtworkAccent extends InheritedWidget {
       oldWidget.palette != palette;
 }
 
-/// Album artwork filling the Now Playing screen with a scrim tinted from the
-/// cover, and [builder]'s content laid over it in light-on-dark colours.
+/// The whole album cover at the top of the Now Playing screen over a colour
+/// tinted from it, with [child] laid over it in light-on-dark colours.
 class NowPlayingArtworkScene extends ConsumerStatefulWidget {
   final String? artworkPath;
   final String heroTag;
@@ -115,13 +115,17 @@ class _NowPlayingArtworkSceneState
               child: Hero(
                 key: ValueKey(widget.artworkPath),
                 tag: widget.heroTag,
+                // The whole cover, never cropped or zoomed: it spans the
+                // display's width at the top, over its own tinted colour.
                 child: Image(
                   image: ResizeImage.resizeIfNeeded(cacheWidth, null, provider),
-                  fit: BoxFit.cover,
+                  fit: BoxFit.contain,
+                  alignment: Alignment.topCenter,
                   gaplessPlayback: true,
                   errorBuilder: (_, _, _) => Image.asset(
                     Assets.defaultAlbumCoverImage,
-                    fit: BoxFit.cover,
+                    fit: BoxFit.contain,
+                    alignment: Alignment.topCenter,
                   ),
                 ),
               ),
@@ -138,13 +142,13 @@ class _NowPlayingArtworkSceneState
                           scrim.withValues(alpha: 0.86),
                           scrim.withValues(alpha: 0.94),
                         ]
+                      // Text sits below the cover on its own colour, so
+                      // only the corner icons need a light shade.
                       : [
-                          scrim.withValues(alpha: 0.45),
+                          scrim.withValues(alpha: 0.35),
                           scrim.withValues(alpha: 0),
-                          scrim.withValues(alpha: 0.6),
-                          scrim.withValues(alpha: 0.94),
                         ],
-                  stops: widget.dimmed ? null : const [0, 0.18, 0.55, 1],
+                  stops: widget.dimmed ? null : const [0, 0.12],
                 ),
               ),
             ),
