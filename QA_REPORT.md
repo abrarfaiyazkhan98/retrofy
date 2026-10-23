@@ -6,10 +6,12 @@ Branch `release/qa-polish` (on top of `feature/artwork-glow` and
 ## Executive summary
 
 - **Release candidate:** 1.0.0+ (unreleased changes in `CHANGELOG.md`).
-- **Assessment:** automated suite green; the new layout, boot screen and
-  icon verified on a real device; the reported Champion playlist bug has a
-  safety net but its root cause is **not yet reproduced**; most manual
-  lifecycle and connectivity scenarios are **not yet executed**.
+- **Assessment:** automated suite green. The Champion playlist bug was
+  reproduced on a real device, its root cause found and fixed, and the fix
+  verified on the device. Layout, boot screen, icon, Music sources, whole
+  artwork and Ambient Mode verified on the device. Lifecycle and
+  connectivity scenarios are **not yet executed** (the device disconnected
+  mid-session).
 - **Recommendation:** NOT READY (see Final verdict).
 
 ## Environment
@@ -23,45 +25,77 @@ Branch `release/qa-polish` (on top of `feature/artwork-glow` and
 
 | Suite | Executed | Passed | Failed | Skipped | Blocked |
 |---|---|---|---|---|---|
-| `flutter test` (unit + widget), final run | 341 | 341 | 0 | 0 | 0 |
+| `flutter test` (unit + widget), final run | 353 | 353 | 0 | 0 | 0 |
 | `flutter analyze` | 1 | 1 (no issues) | 0 | 0 | 0 |
 | Release APK build + install (device) | 1 | 1 | 0 | 0 | 0 |
-| Manual device scenarios (Phase 3 list of 20) | 3 | 3 | 0 | 0 | 17 |
+| Manual device scenarios (Phase 3 list of 20) | 8 | 8 | 0 | 0 | 12 |
 
 Baseline before this work: 299 tests, all passing.
 
-Manual device scenarios executed: cold start (4 launches), boot sequence
-frames, main layout proportions. The other 17 (rapid track selection on
-long playlists, source switching, 20 rapid skips, lock/unlock, app
-switching, headphones, Wi-Fi loss and restore, force stop, Ambient Mode
-cycling, lyrics toggling, rapid wheel navigation, empty playlists, expired
-Spotify auth, long background use, low memory, repeated cold/warm starts)
-are **blocked** on hands-on device time; see Manual test steps.
+Manual device scenarios executed (all passed after fixes): repeated cold
+starts; scrolling to the bottom of a long playlist and selecting tracks
+(Champion, 14 selections across positions 0-53); rapid tapping (two rows
+within milliseconds: the first wins, the second is ignored); switching
+between Library and Spotify (remembered across relaunch and reinstall,
+playback untouched); entering and leaving Ambient Mode; switching between
+artwork and lyrics. Blocked (device disconnected): 20 rapid skips,
+lock/unlock, app switching, headphones, Wi-Fi loss and restore, force
+stop and reopen, rapid wheel navigation, empty playlists, expired Spotify
+auth, long background use, low memory, rotation (portrait-locked app).
 
 ## Bug report
 
 | ID | Severity | Summary | Status |
 |---|---|---|---|
-| RB-1 | P1 | Champion playlist: tapping a track near the bottom sometimes plays another track | Safety net shipped; root cause unconfirmed |
+| RB-1 | P1 | Champion playlist: tapping a track near the bottom plays another track | Fixed, device-verified |
+| RB-6 | P1 | Playback check accepted a stale or ignored request (Now Playing could name a track that was not playing) | Fixed, test-verified; seen on device before the fix |
+| RB-8 | P2 | After Retrofy restarts while Spotify plays, Now Playing shows "No Music" | Fixed, test-verified; device check pending |
+| RB-7 | P2 | Lyrics never follow the song when LRCLIB's exact entry is plain only | Fixed, test-verified; device check pending |
 | RB-2 | P2 | White flash at launch in light mode | Fixed, device-verified |
 | RB-3 | P2 | App startup failures retried silently (about 30 s) before showing Retry | Fixed, test-verified |
 | RB-4 | P2 | Display only about a third of the screen height on tall phones | Fixed, device-verified |
+| RB-9 | P2 | Album covers cropped in Now Playing and Ambient Mode | Fixed, device-verified |
 | RB-5 | P3 | Release build fails when the repo is in iCloud-synced Desktop | Worked around |
 
-**RB-1.** Repro: Spotify → Playlists → Champion, tap a track near the
-bottom. Not yet reproduced by us. Code path: the row's Web API playlist
-position is sent to the Spotify app (`skipToIndex`); nothing checked what
-Spotify then played. Candidate causes (unverified): Spotify's shuffle state,
-or playlist entries the Spotify app skips (local files, episodes,
-unavailable tracks) shifting later positions. Fix: after every tap Retrofy
-waits for Spotify's player state; a different track is replaced by the
-tapped track on its own; if Spotify still plays another track the row shows
-"Spotify played a different song". Mismatches are logged (`Spotify started X
-instead of Y`) for diagnosis. Regression tests:
-`spotify_selection_accuracy` (1–500 track playlists, first/middle/last,
-corrected contexts, refused tracks, shuffle, stale reports, playlist
-switching). Limitation: when corrected, the song plays without its playlist
-context until the root cause is known.
+**RB-1.** Repro (device, 2026-10-23): Music → Spotify → Playlists →
+Champion, scroll to the bottom, tap "Good Life" (position 50): Spotify
+started "Ginseng Strip 2002" (position 51). Bisection by tapping rows:
+positions 0-32 correct, 33 onwards one track late, in both shuffle states
+seen. Root cause: "Be Alright" (Tkandz, CT24; position 33) cannot be
+played on the account. The Spotify app leaves unplayable tracks out of a
+playlist context, but Retrofy listed it from the Web API (requested
+without a market) and counted it, so every later row started the next
+track. Confirmed from both sides: Spotify would not play the track even on
+its own, and the Web API with `market=from_token` marks exactly this one
+track `is_playable: false`. Fix: list requests pass `market=from_token`
+and leave unplayable tracks out, numbering positions as the app does.
+Device verification after the fix: Right Above It, Quebec, Power Trip,
+Good Life, WAIT FOR U (last), Change, and a re-tap of the playing track
+all played exactly, with no correction; Next continued through the
+playlist. Regression tests: `unplayable tracks are left out and later
+positions follow the app`, `album and liked tracks ask for playability
+too`, `spotify_selection_accuracy` (1-500 track playlists).
+
+**RB-6.** Seen on device: when the tapped track was already playing,
+Spotify repeated the old track once before switching, and the check took
+that as success; when Spotify ignored a request without reporting, the
+check accepted it and Now Playing named the requested track. Fix: the
+check notes the track playing before each request, waits for Spotify to
+settle when they match, and judges ignored requests by what is playing.
+Tests: `Spotify ignoring the direct request is reported`, `re-tapping
+the playing track waits for Spotify to settle`.
+
+**RB-7.** Good Life (Graduation, 3:27) has only plain lyrics on LRCLIB's
+exact entry; a same-length entry is synced. Fix: search for a synced entry
+within two seconds of the track's length. Tests in `lyrics_sources`.
+
+**RB-8.** Fix: Retrofy remembers that Spotify was played last and, on
+start, reconnects to the Spotify app and mirrors it without starting
+playback. Tests: `spotify_session_resume`.
+
+**RB-9.** User report. Fix: the whole cover is shown (fit, not crop),
+across the display's width at the top with the text below. Verified on
+device with Graduation and Coming For The Game.
 
 **RB-2.** Root cause: the light `LaunchTheme` drew `@android:color/white`.
 Fix: black launch window in all themes plus an Android 12+ splash.
@@ -76,16 +110,16 @@ gives the display 75% of the usable height with a minimum wheel size.
 Tests: `device_layout`. Verified on device (display about 75%, wheel about
 180 dp).
 
-**RB-5.** iCloud creates `name 2.ext` conflict copies in `build/`, and R8
-rejects duplicate classes. Workaround: `build/` is a symlink to
-`~/Library/Caches/retrofy-build`. Recommended: move the repository out of
-Desktop.
+**RB-5.** iCloud creates `name 2.ext` conflict copies in `build/` (and once
+restored a whole `build 2` folder), and R8 rejects duplicate classes.
+Workaround: `build/` is a symlink to `~/Library/Caches/retrofy-build`.
+Recommended: move the repository out of Desktop.
 
 ## Performance report
 
 | Metric | Result | How |
 |---|---|---|
-| Cold start to first frame | 327, 192, 199, 152 ms | `am start -W` TotalTime, device |
+| Cold start to first frame | 327, 192, 199, 152, 336, 189, 178 ms | `am start -W` TotalTime, device |
 | Boot screen to menu | under 2 s with a cached library | screen captures, device |
 | APK size | 76.9 MB (universal, 3 ABIs) | release build; per-ABI split would give about 25 MB for arm64 |
 | Frame timing (glow, Ambient Mode) | not measured | needs a device session with `--dart-define=RETROFY_FRAME_STATS=true` |
@@ -96,7 +130,6 @@ Desktop.
 - YouTube in-app video: plan only; needs a YouTube Data API key.
 - Artwork glow on the regular Now Playing screen: waiting on a design
   decision (the cover currently fills the display).
-- Music source switch inside Music (Spotify still a main menu row).
 - Audio-reactive glow: no legitimate data source in the current engines.
 
 ## Manual test steps
@@ -115,5 +148,8 @@ Desktop.
 
 ## Final verdict
 
-**NOT READY.** RB-1 (P1) is mitigated but its root cause is unconfirmed,
-and 17 of 20 critical manual scenarios have not been executed.
+**NOT READY.** All known P0/P1 bugs are fixed and the Champion fix is
+verified on the device, but 12 of 20 critical manual scenarios (lifecycle,
+connectivity, long background use) have not been executed, and frame,
+memory and battery measurements are still missing. Expected to move to
+READY WITH KNOWN LIMITATIONS once those pass.
