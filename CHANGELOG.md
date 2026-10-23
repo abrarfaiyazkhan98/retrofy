@@ -4,6 +4,16 @@
 
 ### Fixed
 
+- Tapping a song near the bottom of a Spotify playlist played the next
+  song when the playlist held a track the account cannot play (Champion's
+  "Be Alright"). Such tracks are now left out, as in the Spotify app, so
+  every row plays exactly the song tapped.
+- Now Playing reconnects to Spotify after Retrofy restarts instead of
+  showing "No Music".
+- Lyrics follow the song when LRCLIB's exact match has only plain lyrics
+  but a same-length entry is synced.
+- Album covers are shown whole in Now Playing and Ambient Mode, never
+  cropped or zoomed.
 - Tapping a Spotify track now checks which track Spotify actually starts.
   If Spotify starts a different one, Retrofy plays the tapped track
   directly; if Spotify still plays another song, the list says "Spotify
