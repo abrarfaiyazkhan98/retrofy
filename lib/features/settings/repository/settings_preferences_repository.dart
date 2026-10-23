@@ -2,6 +2,7 @@ import 'package:classipod/core/constants/constants.dart';
 import 'package:classipod/core/models/shared_preference_keys.dart';
 import 'package:classipod/core/providers/shared_preferences_with_cache_provider.dart';
 import 'package:classipod/features/settings/models/app_theme.dart';
+import 'package:classipod/features/settings/models/artwork_glow.dart';
 import 'package:classipod/features/settings/models/click_wheel_sensitivity.dart';
 import 'package:classipod/features/settings/models/click_wheel_size.dart';
 import 'package:classipod/features/settings/models/cover_flow_appearance.dart';
@@ -104,6 +105,34 @@ class SettingsPreferencesRepository {
     return _sharedPreferencesWithCache.setString(
       SharedPreferencesKeys.coverFlowAppearance.name,
       appearance.name,
+    );
+  }
+
+  String getArtworkGlow() {
+    return _sharedPreferencesWithCache.getString(
+          SharedPreferencesKeys.artworkGlow.name,
+        ) ??
+        ArtworkGlowStyle.dynamic.name;
+  }
+
+  Future<void> setArtworkGlow(ArtworkGlowStyle style) {
+    return _sharedPreferencesWithCache.setString(
+      SharedPreferencesKeys.artworkGlow.name,
+      style.name,
+    );
+  }
+
+  String getAnimationQuality() {
+    return _sharedPreferencesWithCache.getString(
+          SharedPreferencesKeys.animationQuality.name,
+        ) ??
+        AnimationQuality.auto.name;
+  }
+
+  Future<void> setAnimationQuality(AnimationQuality quality) {
+    return _sharedPreferencesWithCache.setString(
+      SharedPreferencesKeys.animationQuality.name,
+      quality.name,
     );
   }
 

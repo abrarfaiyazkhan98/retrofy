@@ -10,6 +10,8 @@ enum SharedPreferencesKeys {
   volumeMode,
   appTheme,
   coverFlowAppearance,
+  artworkGlow,
+  animationQuality,
   splitScreenEnabled,
   immersiveMode,
   ambientMode,

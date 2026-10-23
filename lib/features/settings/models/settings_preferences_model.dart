@@ -1,4 +1,5 @@
 import 'package:classipod/features/settings/models/app_theme.dart';
+import 'package:classipod/features/settings/models/artwork_glow.dart';
 import 'package:classipod/features/settings/models/click_wheel_sensitivity.dart';
 import 'package:classipod/features/settings/models/click_wheel_size.dart';
 import 'package:classipod/features/settings/models/cover_flow_appearance.dart';
@@ -24,6 +25,8 @@ class SettingsPreferencesModel {
   final bool fetchOnlineMusic;
   final AppTheme appTheme;
   final CoverFlowAppearance coverFlowAppearance;
+  final ArtworkGlowStyle artworkGlow;
+  final AnimationQuality animationQuality;
 
   SettingsPreferencesModel({
     required this.languageLocaleCode,
@@ -41,6 +44,8 @@ class SettingsPreferencesModel {
     required this.appTheme,
     this.fetchOnlineMusic = false,
     this.coverFlowAppearance = CoverFlowAppearance.original,
+    this.artworkGlow = ArtworkGlowStyle.dynamic,
+    this.animationQuality = AnimationQuality.auto,
   });
 
   SettingsPreferencesModel copyWith({
@@ -59,6 +64,8 @@ class SettingsPreferencesModel {
     bool? fetchOnlineMusic,
     AppTheme? appTheme,
     CoverFlowAppearance? coverFlowAppearance,
+    ArtworkGlowStyle? artworkGlow,
+    AnimationQuality? animationQuality,
   }) {
     return SettingsPreferencesModel(
       languageLocaleCode: languageLocaleCode ?? this.languageLocaleCode,
@@ -77,6 +84,8 @@ class SettingsPreferencesModel {
       appTheme: appTheme ?? this.appTheme,
       coverFlowAppearance: coverFlowAppearance ?? this.coverFlowAppearance,
       fetchOnlineMusic: fetchOnlineMusic ?? this.fetchOnlineMusic,
+      artworkGlow: artworkGlow ?? this.artworkGlow,
+      animationQuality: animationQuality ?? this.animationQuality,
     );
   }
 
@@ -97,7 +106,9 @@ class SettingsPreferencesModel {
         other.ambientMode == ambientMode &&
         other.fetchOnlineMusic == fetchOnlineMusic &&
         other.appTheme == appTheme &&
-        other.coverFlowAppearance == coverFlowAppearance;
+        other.coverFlowAppearance == coverFlowAppearance &&
+        other.artworkGlow == artworkGlow &&
+        other.animationQuality == animationQuality;
   }
 
   @override
@@ -117,5 +128,7 @@ class SettingsPreferencesModel {
     appTheme,
     fetchOnlineMusic,
     coverFlowAppearance,
+    artworkGlow,
+    animationQuality,
   );
 }

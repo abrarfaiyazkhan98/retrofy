@@ -77,6 +77,9 @@ flutter:
     - assets/images/
     - assets/sounds/
 
+  shaders:
+    - shaders/artwork_glow.frag
+
   fonts:
     - family: Helvetica
       fonts:

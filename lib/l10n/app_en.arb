@@ -807,6 +807,42 @@
   "@spotifyErrorWrongTrack": {
     "description": "Shown when Spotify starts another song than the one chosen, even after Retrofy asked for the chosen song directly"
   },
+  "artworkGlowSettingTitle": "Artwork Glow",
+  "@artworkGlowSettingTitle": {
+    "description": "Settings row for the coloured glow drawn from album artwork"
+  },
+  "artworkGlowOffTitle": "Off",
+  "@artworkGlowOffTitle": {
+    "description": "Artwork Glow setting value: no glow"
+  },
+  "artworkGlowSubtleTitle": "Subtle",
+  "@artworkGlowSubtleTitle": {
+    "description": "Artwork Glow setting value: a gentle glow"
+  },
+  "artworkGlowDynamicTitle": "Dynamic",
+  "@artworkGlowDynamicTitle": {
+    "description": "Artwork Glow setting value: the full animated glow"
+  },
+  "animationQualitySettingTitle": "Animation Quality",
+  "@animationQualitySettingTitle": {
+    "description": "Settings row for how much animation work the artwork glow does"
+  },
+  "animationQualityAutoTitle": "Auto",
+  "@animationQualityAutoTitle": {
+    "description": "Animation Quality value chosen from the device and Battery Saver"
+  },
+  "animationQualityHighTitle": "High",
+  "@animationQualityHighTitle": {
+    "description": "Animation Quality value: full animation"
+  },
+  "animationQualityBalancedTitle": "Balanced",
+  "@animationQualityBalancedTitle": {
+    "description": "Animation Quality value: lighter animation"
+  },
+  "animationQualityBatterySaverTitle": "Battery Saver",
+  "@animationQualityBatterySaverTitle": {
+    "description": "Animation Quality value: still glow, no animation"
+  },
   "spotifyErrorGeneric": "Spotify request failed",
   "@spotifyErrorGeneric": {
     "description": "Shown for any other Spotify error"

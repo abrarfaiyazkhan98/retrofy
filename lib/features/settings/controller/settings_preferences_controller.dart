@@ -12,6 +12,7 @@ import 'package:classipod/core/subsonic/subsonic_controller.dart';
 import 'package:classipod/features/app_startup/controllers/splash_controller.dart';
 import 'package:classipod/features/music/playlist/models/playlist_model.dart';
 import 'package:classipod/features/settings/models/app_theme.dart';
+import 'package:classipod/features/settings/models/artwork_glow.dart';
 import 'package:classipod/features/settings/models/click_wheel_sensitivity.dart';
 import 'package:classipod/features/settings/models/click_wheel_size.dart';
 import 'package:classipod/features/settings/models/cover_flow_appearance.dart';
@@ -87,6 +88,12 @@ class SettingsPreferencesControllerNotifier
         settingsPreferencesRepository.getCoverFlowAppearance(),
       ),
       appTheme: AppTheme.fromName(settingsPreferencesRepository.getAppTheme()),
+      artworkGlow: ArtworkGlowStyle.fromName(
+        settingsPreferencesRepository.getArtworkGlow(),
+      ),
+      animationQuality: AnimationQuality.fromName(
+        settingsPreferencesRepository.getAnimationQuality(),
+      ),
     );
   }
 
@@ -319,6 +326,22 @@ class SettingsPreferencesControllerNotifier
         .setCoverFlowAppearance(appearance);
   }
 
+  Future<void> cycleArtworkGlow() async {
+    const values = ArtworkGlowStyle.values;
+    final style = values[(state.artworkGlow.index + 1) % values.length];
+    state = state.copyWith(artworkGlow: style);
+    await ref.read(settingsPreferencesRepositoryProvider).setArtworkGlow(style);
+  }
+
+  Future<void> cycleAnimationQuality() async {
+    const values = AnimationQuality.values;
+    final quality = values[(state.animationQuality.index + 1) % values.length];
+    state = state.copyWith(animationQuality: quality);
+    await ref
+        .read(settingsPreferencesRepositoryProvider)
+        .setAnimationQuality(quality);
+  }
+
   Future<void> toggleAppTheme() async {
     final AppTheme updatedTheme = state.appTheme == AppTheme.light
         ? AppTheme.dark
@@ -407,6 +430,12 @@ class SettingsPreferencesControllerNotifier
     await ref
         .read(settingsPreferencesRepositoryProvider)
         .setCoverFlowAppearance(CoverFlowAppearance.original);
+    await ref
+        .read(settingsPreferencesRepositoryProvider)
+        .setArtworkGlow(ArtworkGlowStyle.dynamic);
+    await ref
+        .read(settingsPreferencesRepositoryProvider)
+        .setAnimationQuality(AnimationQuality.auto);
     ref.invalidateSelf();
   }
 

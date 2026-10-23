@@ -32,6 +32,8 @@ enum _SettingsDisplayItems {
   splitScreenEnabled,
   immersiveMode,
   ambientMode,
+  artworkGlow,
+  animationQuality,
   showAppTutorial,
   librarySettings,
   resetSettings,
@@ -71,6 +73,10 @@ enum _SettingsDisplayItems {
         return context.localization.immersiveModeSettingTitle;
       case ambientMode:
         return context.localization.ambientModeSettingTitle;
+      case artworkGlow:
+        return context.localization.artworkGlowSettingTitle;
+      case animationQuality:
+        return context.localization.animationQualitySettingTitle;
       case showAppTutorial:
         return context.localization.showAppTutorialSettingTitle;
       case librarySettings:
@@ -123,6 +129,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         await ref
             .read(settingsPreferencesControllerProvider.notifier)
             .toggleCoverFlowAppearance();
+        break;
+      case _SettingsDisplayItems.artworkGlow:
+        await ref
+            .read(settingsPreferencesControllerProvider.notifier)
+            .cycleArtworkGlow();
+        break;
+      case _SettingsDisplayItems.animationQuality:
+        await ref
+            .read(settingsPreferencesControllerProvider.notifier)
+            .cycleAnimationQuality();
         break;
       case _SettingsDisplayItems.appTheme:
         await ref
@@ -236,6 +252,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         return settingsState.clickWheelSensitivity.title(context);
       case _SettingsDisplayItems.coverFlowAppearance:
         return settingsState.coverFlowAppearance.title(context);
+      case _SettingsDisplayItems.artworkGlow:
+        return settingsState.artworkGlow.title(context);
+      case _SettingsDisplayItems.animationQuality:
+        return settingsState.animationQuality.title(context);
       case _SettingsDisplayItems.appTheme:
         return settingsState.appTheme.title(context);
       case _SettingsDisplayItems.repeat:
