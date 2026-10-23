@@ -12,6 +12,7 @@ enum SharedPreferencesKeys {
   coverFlowAppearance,
   artworkGlow,
   animationQuality,
+  musicSource,
   splitScreenEnabled,
   immersiveMode,
   ambientMode,

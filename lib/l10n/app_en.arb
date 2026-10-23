@@ -871,6 +871,10 @@
   "@ambientPauseLabel": {
     "description": "Screen reader label for the pause button"
   },
+  "musicSourceLibrary": "Library",
+  "@musicSourceLibrary": {
+    "description": "Music menu row that switches the list below to the music on this device and Subsonic"
+  },
   "spotifyErrorGeneric": "Spotify request failed",
   "@spotifyErrorGeneric": {
     "description": "Shown for any other Spotify error"
