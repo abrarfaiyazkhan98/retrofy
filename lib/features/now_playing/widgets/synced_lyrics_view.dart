@@ -15,11 +15,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 class SyncedLyricsView extends ConsumerStatefulWidget {
   final Lyrics lyrics;
   final ScrollController scrollController;
+  final double fontSize;
+
+  /// Colour of the sung line; the artwork accent when null.
+  final Color? currentColor;
+
+  /// Seeks to a tapped synced line; lines are not tappable when null.
+  final ValueChanged<Duration>? onLineTap;
 
   const SyncedLyricsView({
     super.key,
     required this.lyrics,
     required this.scrollController,
+    this.fontSize = 17,
+    this.currentColor,
+    this.onLineTap,
   });
 
   @override
@@ -118,13 +128,17 @@ class SyncedLyricsViewState extends ConsumerState<SyncedLyricsView> {
   Widget build(BuildContext context) {
     final lyrics = widget.lyrics;
     final accent =
-        ArtworkAccent.maybeOf(context)?.accent ?? CupertinoColors.white;
+        widget.currentColor ??
+        ArtworkAccent.maybeOf(context)?.accent ??
+        CupertinoColors.white;
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
-    const base = TextStyle(
-      fontSize: 17,
-      height: 1.35,
+    final base = TextStyle(
+      fontSize: widget.fontSize,
+      height: 1.3,
       fontWeight: FontWeight.w700,
     );
+    final onLineTap = widget.onLineTap;
+    final gap = widget.fontSize * 0.18;
     final attribution = Padding(
       padding: const EdgeInsets.only(top: 18, bottom: 40),
       child: Text(
@@ -148,23 +162,31 @@ class SyncedLyricsViewState extends ConsumerState<SyncedLyricsView> {
               Text(lyrics.plain ?? '', style: base)
             else
               for (var i = 0; i < lyrics.lines.length; i++)
-                Padding(
+                GestureDetector(
                   key: _lineKeys[i],
-                  padding: const EdgeInsets.symmetric(vertical: 3),
-                  child: AnimatedDefaultTextStyle(
-                    duration: reduceMotion
-                        ? Duration.zero
-                        : const Duration(milliseconds: 220),
-                    style: base.copyWith(
-                      color: i == _current
-                          ? accent
-                          : CupertinoColors.white.withValues(
-                              alpha: i < _current ? 0.42 : 0.62,
-                            ),
-                    ),
-                    // Instrumental gaps are blank lines in LRC.
-                    child: Text(
-                      lyrics.lines[i].text.isEmpty ? '♪' : lyrics.lines[i].text,
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onLineTap == null
+                      ? null
+                      : () => onLineTap(lyrics.lines[i].time),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: gap),
+                    child: AnimatedDefaultTextStyle(
+                      duration: reduceMotion
+                          ? Duration.zero
+                          : const Duration(milliseconds: 220),
+                      style: base.copyWith(
+                        color: i == _current
+                            ? accent
+                            : CupertinoColors.white.withValues(
+                                alpha: i < _current ? 0.42 : 0.62,
+                              ),
+                      ),
+                      // Instrumental gaps are blank lines in LRC.
+                      child: Text(
+                        lyrics.lines[i].text.isEmpty
+                            ? '♪'
+                            : lyrics.lines[i].text,
+                      ),
                     ),
                   ),
                 ),

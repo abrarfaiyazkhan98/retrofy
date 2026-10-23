@@ -13,10 +13,13 @@ import 'package:classipod/features/now_playing/models/now_playing_model.dart';
 import 'package:classipod/features/now_playing/provider/now_playing_details_provider.dart';
 import 'package:classipod/features/now_playing/screen/ambient_now_playing_screen.dart';
 import 'package:classipod/features/now_playing/screen/now_playing_screen.dart';
+import 'package:classipod/core/widgets/artwork_glow.dart';
+import 'package:classipod/features/now_playing/widgets/immersive_ambient_view.dart';
 import 'package:classipod/features/now_playing/widgets/now_playing_bottom_bar.dart';
 import 'package:classipod/features/now_playing/widgets/scrubber_bar.dart';
 import 'package:classipod/features/now_playing/widgets/shuffle_segmented_control.dart';
 import 'package:classipod/features/settings/controller/settings_preferences_controller.dart';
+import 'package:classipod/features/settings/models/artwork_glow.dart';
 import 'package:classipod/features/settings/models/click_wheel_sensitivity.dart';
 import 'package:classipod/features/settings/models/click_wheel_size.dart';
 import 'package:classipod/features/settings/models/device_color.dart';
@@ -167,9 +170,16 @@ class _SettingsModel extends Fake implements SettingsPreferencesModel {
   VolumeMode get volumeMode => VolumeMode.app;
 
   static bool ambient = false;
+  static ArtworkGlowStyle glow = ArtworkGlowStyle.off;
 
   @override
   bool get ambientMode => ambient;
+
+  @override
+  ArtworkGlowStyle get artworkGlow => glow;
+
+  @override
+  AnimationQuality get animationQuality => AnimationQuality.auto;
 }
 
 class _Settings extends SettingsPreferencesControllerNotifier {
@@ -651,7 +661,33 @@ void main() {
   }
 
   group('ambient_mode', () {
-    tearDown(() => _SettingsModel.ambient = false);
+    tearDown(() {
+      _SettingsModel.ambient = false;
+      _SettingsModel.glow = ArtworkGlowStyle.off;
+    });
+
+    testWidgets('with Artwork Glow it is the immersive player', (tester) async {
+      _SettingsModel.ambient = true;
+      _SettingsModel.glow = ArtworkGlowStyle.dynamic;
+      await mount(tester, playing: true);
+      await tester.pump(const Duration(seconds: 31));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byType(ImmersiveAmbientView), findsOneWidget);
+      expect(find.byType(ArtworkGlow), findsOneWidget);
+      expect(find.bySemanticsLabel('Pause'), findsOneWidget);
+
+      // Taps on the player work it rather than closing Ambient Mode.
+      await tester.tap(find.bySemanticsLabel('Pause'));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byType(ImmersiveAmbientView), findsOneWidget);
+
+      await tester.tap(find.bySemanticsLabel('Close Ambient Mode'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byType(ImmersiveAmbientView), findsNothing);
+      expect(find.byType(NowPlayingScreen), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
 
     testWidgets('appears after 30 s of no input while playing', (tester) async {
       _SettingsModel.ambient = true;

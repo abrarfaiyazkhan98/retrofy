@@ -843,6 +843,34 @@
   "@animationQualityBatterySaverTitle": {
     "description": "Animation Quality value: still glow, no animation"
   },
+  "ambientCloseLabel": "Close Ambient Mode",
+  "@ambientCloseLabel": {
+    "description": "Screen reader label for the button that leaves Ambient Mode"
+  },
+  "ambientLyricsLabel": "Lyrics",
+  "@ambientLyricsLabel": {
+    "description": "Screen reader label for the Ambient Mode button that shows or hides lyrics"
+  },
+  "ambientFavouriteLabel": "Favourite",
+  "@ambientFavouriteLabel": {
+    "description": "Screen reader label for the Ambient Mode star that marks the song as a favourite"
+  },
+  "ambientPreviousLabel": "Previous",
+  "@ambientPreviousLabel": {
+    "description": "Screen reader label for the previous track button"
+  },
+  "ambientNextLabel": "Next",
+  "@ambientNextLabel": {
+    "description": "Screen reader label for the next track button"
+  },
+  "ambientPlayLabel": "Play",
+  "@ambientPlayLabel": {
+    "description": "Screen reader label for the play button"
+  },
+  "ambientPauseLabel": "Pause",
+  "@ambientPauseLabel": {
+    "description": "Screen reader label for the pause button"
+  },
   "spotifyErrorGeneric": "Spotify request failed",
   "@spotifyErrorGeneric": {
     "description": "Shown for any other Spotify error"

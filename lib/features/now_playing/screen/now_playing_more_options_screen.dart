@@ -9,6 +9,7 @@ import 'package:classipod/features/music/album/providers/album_details_provider.
 import 'package:classipod/features/music/playlist/providers/playlists_provider.dart';
 import 'package:classipod/features/music/songs/screens/song_edit_screen.dart';
 import 'package:classipod/features/now_playing/provider/now_playing_details_provider.dart';
+import 'package:classipod/features/now_playing/screen/ambient_now_playing_screen.dart';
 import 'package:classipod/features/now_playing/video/music_video_link.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,6 +21,7 @@ enum _NowPlayingMoreOptions {
   browseAlbum,
   browseArtist,
   editSong,
+  ambientMode,
   sleepTimer,
   cancel;
 
@@ -35,6 +37,8 @@ enum _NowPlayingMoreOptions {
         return context.localization.browseArtist;
       case editSong:
         return context.localization.editSongOption;
+      case ambientMode:
+        return context.localization.ambientModeSettingTitle;
       case sleepTimer:
         return context.localization.sleepTimerTitle;
       case cancel:
@@ -66,6 +70,7 @@ class _NowPlayingMoreOptionsScreenState
         if (option == _NowPlayingMoreOptions.watchVideo
             ? musicVideoSearchUri(current) != null
             : !(current?.isSpotify ?? false) ||
+                  option == _NowPlayingMoreOptions.ambientMode ||
                   option == _NowPlayingMoreOptions.sleepTimer ||
                   option == _NowPlayingMoreOptions.cancel)
           option,
@@ -147,6 +152,10 @@ class _NowPlayingMoreOptionsScreenState
         if (mounted) {
           _closeScreen();
         }
+        break;
+      case _NowPlayingMoreOptions.ambientMode:
+        await AmbientNowPlayingScreen.open(context);
+        _closeScreen();
         break;
       case _NowPlayingMoreOptions.sleepTimer:
         await context.pushNamed(Routes.sleepTimer.name);
