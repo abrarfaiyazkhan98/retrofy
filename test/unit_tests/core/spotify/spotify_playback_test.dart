@@ -126,6 +126,9 @@ class FakeSpotifyRemote implements SpotifyRemote {
   }
 
   @override
+  Future<void> queue(String uri) => _record('queue $uri');
+
+  @override
   Future<void> skipToIndex(String contextUri, int index) async {
     await _record('skipToIndex $contextUri $index');
     _report(contexts[contextUri]?.elementAtOrNull(index));

@@ -9,6 +9,8 @@ import 'package:classipod/features/device/widgets/device_frame.dart';
 import 'package:classipod/features/menu/screens/main_menu_screen.dart';
 import 'package:classipod/features/menu/screens/music_menu_screen.dart';
 import 'package:classipod/features/menu/screens/split_screen_placeholder.dart';
+import 'package:classipod/features/mood/models/mood_selection.dart';
+import 'package:classipod/features/mood/screens/match_mood_screens.dart';
 import 'package:classipod/features/music/album/models/album_model.dart';
 import 'package:classipod/features/music/album/screens/album_more_options_modal.dart';
 import 'package:classipod/features/music/album/screens/album_selection_screen.dart';
@@ -65,6 +67,11 @@ enum Routes {
   nowPlaying,
   nowPlayingMoreOptions,
   artistChoice,
+  matchMood,
+  moodList,
+  tempoList,
+  customBpm,
+  moodPreview,
   sleepTimer,
   musicMenu,
   coverFlow,
@@ -121,6 +128,15 @@ enum Routes {
         return context.localization.nowPlayingScreenTitle;
       case artistChoice:
         return context.localization.goToArtist;
+      case matchMood:
+        return context.localization.matchYourMoodTitle;
+      case moodList:
+        return context.localization.moodTitle;
+      case tempoList:
+      case customBpm:
+        return context.localization.tempoTitle;
+      case moodPreview:
+        return context.localization.matchYourMoodTitle;
       case sleepTimer:
         return context.localization.sleepTimerTitle;
       case musicMenu:
@@ -247,6 +263,57 @@ final routerProvider = Provider(
                 pageBuilder: (context, state) =>
                     const CupertinoPage(child: MainMenuScreen()),
                 routes: [
+                  GoRoute(
+                    path: Routes.matchMood.name,
+                    name: Routes.matchMood.name,
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (context, state) => CupertinoPage(
+                      key: state.pageKey,
+                      child: const ScreenPageContent(child: MatchMoodScreen()),
+                    ),
+                  ),
+                  GoRoute(
+                    path: Routes.moodList.name,
+                    name: Routes.moodList.name,
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (context, state) => CupertinoPage(
+                      key: state.pageKey,
+                      child: const ScreenPageContent(child: MoodListScreen()),
+                    ),
+                  ),
+                  GoRoute(
+                    path: Routes.tempoList.name,
+                    name: Routes.tempoList.name,
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (context, state) => CupertinoPage(
+                      key: state.pageKey,
+                      child: const ScreenPageContent(child: TempoListScreen()),
+                    ),
+                  ),
+                  GoRoute(
+                    path: Routes.customBpm.name,
+                    name: Routes.customBpm.name,
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (context, state) => CupertinoPage(
+                      key: state.pageKey,
+                      child: const ScreenPageContent(child: CustomBpmScreen()),
+                    ),
+                  ),
+                  GoRoute(
+                    path: Routes.moodPreview.name,
+                    name: Routes.moodPreview.name,
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (context, state) => CupertinoPage(
+                      key: state.pageKey,
+                      child: ScreenPageContent(
+                        child: state.extra is MoodSelection
+                            ? MoodPreviewScreen(
+                                selection: state.extra! as MoodSelection,
+                              )
+                            : const PageNotFoundScreen(),
+                      ),
+                    ),
+                  ),
                   GoRoute(
                     path: Routes.settings.name,
                     name: Routes.settings.name,

@@ -245,6 +245,16 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
     if (error != null) Error.throwWithStackTrace(error, state.stackTrace!);
   }
 
+  /// Plays [tracks] in this order in the Spotify app: the first starts and
+  /// the rest join Spotify's queue. Needs Premium (track choice).
+  Future<void> playSpotifyQueue(List<MusicMetadata> tracks) async {
+    if (tracks.isEmpty) return;
+    await playSpotify(tracks: tracks, index: 0);
+    for (final track in tracks.skip(1)) {
+      await _spotify.queue(track.songId!);
+    }
+  }
+
   @override
   Future<void> build() async {
     final handler = ref.watch(libraryAudioHandlerProvider);

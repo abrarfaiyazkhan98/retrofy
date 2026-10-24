@@ -907,5 +907,130 @@
   "spotifyErrorNoLikedSongs": "Your Liked Songs on Spotify is empty.",
   "@spotifyErrorNoLikedSongs": {
     "description": "Shown when Shuffle My Music finds no Liked Songs"
+  },
+  "matchYourMoodTitle": "Match Your Mood",
+  "@matchYourMoodTitle": {
+    "description": "Main menu feature that builds a listening session from a mood or tempo"
+  },
+  "moodTitle": "Mood",
+  "@moodTitle": {
+    "description": "Match Your Mood row for choosing a mood"
+  },
+  "tempoTitle": "Tempo",
+  "@tempoTitle": {
+    "description": "Match Your Mood row for choosing a tempo"
+  },
+  "moodHappy": "Happy",
+  "@moodHappy": {
+    "description": "Mood"
+  },
+  "moodChill": "Chill",
+  "@moodChill": {
+    "description": "Mood"
+  },
+  "moodEnergetic": "Energetic",
+  "@moodEnergetic": {
+    "description": "Mood"
+  },
+  "moodFocus": "Focus",
+  "@moodFocus": {
+    "description": "Mood"
+  },
+  "moodSad": "Sad",
+  "@moodSad": {
+    "description": "Mood"
+  },
+  "moodRomantic": "Romantic",
+  "@moodRomantic": {
+    "description": "Mood"
+  },
+  "moodWorkout": "Workout",
+  "@moodWorkout": {
+    "description": "Mood"
+  },
+  "moodNightDrive": "Night Drive",
+  "@moodNightDrive": {
+    "description": "Mood"
+  },
+  "tempoSlow": "Slow",
+  "@tempoSlow": {
+    "description": "Tempo preset"
+  },
+  "tempoRelaxed": "Relaxed",
+  "@tempoRelaxed": {
+    "description": "Tempo preset"
+  },
+  "tempoModerate": "Moderate",
+  "@tempoModerate": {
+    "description": "Tempo preset"
+  },
+  "tempoUpbeat": "Upbeat",
+  "@tempoUpbeat": {
+    "description": "Tempo preset"
+  },
+  "tempoHighEnergy": "High Energy",
+  "@tempoHighEnergy": {
+    "description": "Tempo preset"
+  },
+  "tempoIntense": "Intense",
+  "@tempoIntense": {
+    "description": "Tempo preset"
+  },
+  "customBpmTitle": "Custom BPM",
+  "@customBpmTitle": {
+    "description": "Tempo row that lets the user set a BPM with the wheel"
+  },
+  "customBpmHint": "Turn the wheel to set the tempo. Press the centre button to continue.",
+  "@customBpmHint": {
+    "description": "Instructions on the custom BPM screen"
+  },
+  "moodFinding": "Finding music…",
+  "@moodFinding": {
+    "description": "Shown while Match Your Mood builds a session"
+  },
+  "moodStart": "Start Session",
+  "@moodStart": {
+    "description": "Row that starts the Match Your Mood session"
+  },
+  "moodShuffleLikedInstead": "Shuffle Liked Songs Instead",
+  "@moodShuffleLikedInstead": {
+    "description": "Fallback offered when a tempo cannot be matched"
+  },
+  "moodBasisAudioFeatures": "Matched by measured tempo, energy and mood data.",
+  "@moodBasisAudioFeatures": {
+    "description": "Explains how tracks were chosen"
+  },
+  "moodBasisPlaylist": "From your playlist “{name}”, chosen by its name.",
+  "@moodBasisPlaylist": {
+    "description": "Explains how tracks were chosen",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "moodBasisGenre": "Matched by the genre tags in your library.",
+  "@moodBasisGenre": {
+    "description": "Explains how tracks were chosen"
+  },
+  "moodBasisFallbackLiked": "No playlist name matched this mood, so this shuffles your Liked Songs.",
+  "@moodBasisFallbackLiked": {
+    "description": "Explains the fallback"
+  },
+  "moodBasisFallbackLibrary": "No genre tag matched this mood, so this shuffles your library.",
+  "@moodBasisFallbackLibrary": {
+    "description": "Explains the fallback"
+  },
+  "moodBasisNoTempo": "Tempo (BPM) data isn’t available for your music, so Retrofy can’t match a tempo.",
+  "@moodBasisNoTempo": {
+    "description": "Explains that tempo matching is unavailable"
+  },
+  "moodPreviewUnavailable": "Spotify doesn’t share this playlist’s songs with Retrofy, but it still plays.",
+  "@moodPreviewUnavailable": {
+    "description": "Shown when a session's playlist cannot be listed"
+  },
+  "moodNothingToPlay": "Nothing to play for this choice.",
+  "@moodNothingToPlay": {
+    "description": "Shown when a session has no tracks"
   }
 }

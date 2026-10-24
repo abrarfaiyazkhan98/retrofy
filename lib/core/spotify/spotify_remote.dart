@@ -117,6 +117,9 @@ abstract class SpotifyRemote {
   });
   Future<void> disconnect();
   Future<void> play(String uri);
+
+  /// Adds a track after the current one in Spotify's queue (Premium).
+  Future<void> queue(String uri);
   Future<void> skipToIndex(String contextUri, int index);
   Future<void> resume();
   Future<void> pause();
@@ -182,6 +185,9 @@ class MethodChannelSpotifyRemote implements SpotifyRemote {
 
   @override
   Future<void> play(String uri) => _call<void>('play', {'uri': uri});
+
+  @override
+  Future<void> queue(String uri) => _call<void>('queue', {'uri': uri});
 
   @override
   Future<void> skipToIndex(String contextUri, int index) =>

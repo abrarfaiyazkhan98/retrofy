@@ -259,6 +259,7 @@ object SpotifyRemoteBridge : MethodChannel.MethodCallHandler, EventChannel.Strea
         }
         val pending: CallResult<Empty> = when (call.method) {
             "play" -> player.play(call.argument<String>("uri"))
+            "queue" -> player.queue(call.argument<String>("uri"))
             "skipToIndex" ->
                 player.skipToIndex(call.argument<String>("uri"), call.argument<Int>("index") ?: 0)
             "resume" -> player.resume()

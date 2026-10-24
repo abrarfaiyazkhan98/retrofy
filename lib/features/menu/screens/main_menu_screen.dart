@@ -18,6 +18,7 @@ enum _MainMenuDisplayItems {
   music,
   settings,
   shuffleSongs,
+  matchYourMood,
   nowPlaying;
 
   String title(BuildContext context) {
@@ -28,6 +29,8 @@ enum _MainMenuDisplayItems {
         return context.localization.settingsScreenTitle;
       case shuffleSongs:
         return context.localization.shuffleMyMusicTitle;
+      case matchYourMood:
+        return context.localization.matchYourMoodTitle;
       case nowPlaying:
         return context.localization.nowPlayingScreenTitle;
     }
@@ -71,6 +74,12 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen>
         break;
       case _MainMenuDisplayItems.settings:
         context.goNamed(Routes.settings.name);
+        break;
+      case _MainMenuDisplayItems.matchYourMood:
+        unawaited(ref.read(splitScreenViewControllerProvider).closeSplitView());
+        await context.pushNamed(Routes.matchMood.name);
+        if (!mounted) return;
+        unawaited(ref.read(splitScreenViewControllerProvider).openSplitView());
         break;
       case _MainMenuDisplayItems.shuffleSongs:
         try {
@@ -129,6 +138,10 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen>
       case _MainMenuDisplayItems.nowPlaying:
         ref.read(splitScreenControllerProvider.notifier).changeSplitScreenType =
             SplitScreenType.nowPlaying;
+        break;
+      case _MainMenuDisplayItems.matchYourMood:
+        ref.read(splitScreenControllerProvider.notifier).changeSplitScreenType =
+            SplitScreenType.matchYourMood;
         break;
     }
   }

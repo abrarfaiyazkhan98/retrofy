@@ -7,6 +7,7 @@ enum SplitScreenType {
   preventDuplicateTracks,
   missingTracks,
   shuffle,
+  matchYourMood,
   nowPlaying,
   sleepTimer,
   language,

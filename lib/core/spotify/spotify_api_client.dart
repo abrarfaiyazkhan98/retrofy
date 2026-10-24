@@ -193,6 +193,16 @@ class SpotifyApiClient {
     _trackOf,
   );
 
+  /// Raw audio features (tempo, energy, valence) for up to 100 track IDs.
+  /// Apps created after November 2024 get 403 here; callers must treat
+  /// that as "no data", never as a reason to guess.
+  Future<List<Object?>> audioFeatures(List<String> trackIds) async {
+    final response = await get('audio-features', {'ids': trackIds.join(',')});
+    final items = response['audio_features'];
+    if (items is! List) throw const SpotifyException('response');
+    return items;
+  }
+
   /// How many Liked Songs the user has, from a one-item page.
   Future<int> savedTrackCount() async {
     final response = await get('me/tracks', {'limit': '1'});

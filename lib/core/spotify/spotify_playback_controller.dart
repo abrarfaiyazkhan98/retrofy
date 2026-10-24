@@ -281,6 +281,12 @@ class SpotifyPlaybackController extends Notifier<SpotifyPlaybackState> {
     return remote.play(uri);
   });
 
+  /// Queues [uri] after the playing track. Track choice needs Premium.
+  Future<void> queue(String uri) => _command((remote) {
+    _requireOnDemand();
+    return remote.queue(uri);
+  });
+
   /// The moment a play request is sent and the track playing then, for
   /// [confirmTrack].
   ({DateTime since, String? before}) get requestMark =>

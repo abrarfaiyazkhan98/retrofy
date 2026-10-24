@@ -119,6 +119,14 @@ class _SplitScreenPlaceholderState extends ConsumerState<SplitScreenPlaceholder>
               ? context.localization.spotifyLikedSongs
               : "${ref.watch(songsProvider).length} ${context.localization.songsScreenTitle}",
         );
+      } else if (splitScreenType == SplitScreenType.matchYourMood) {
+        splitScreenWidget = IconPreviewWidget(
+          titleText: context.localization.matchYourMoodTitle,
+          icon: CupertinoIcons.waveform,
+          contentText:
+              '${context.localization.moodTitle} · '
+              '${context.localization.tempoTitle}',
+        );
       } else if (splitScreenType == SplitScreenType.settings) {
         splitScreenWidget = const SettingsPreviewWidget();
       } else if (splitScreenType == SplitScreenType.nowPlaying) {
