@@ -36,6 +36,17 @@ class ArtworkPalette {
   /// Text and icon colour over [base].
   Color get foreground => const Color(0xFFFFFFFF);
 
+  /// Background of the Now Playing information panel under the cover: the
+  /// cover's own dark tone, restrained so it never looks neon and white text
+  /// always keeps a contrast of 7:1 or more.
+  Color get panel {
+    final hsl = HSLColor.fromColor(scrim);
+    return hsl
+        .withSaturation(hsl.saturation.clamp(0, 0.32))
+        .withLightness(hsl.lightness.clamp(0.13, 0.18))
+        .toColor();
+  }
+
   /// Builds the palette from RGBA pixels of a small thumbnail.
   factory ArtworkPalette.fromPixels(Uint8List rgba) {
     var r = 0, g = 0, b = 0, count = 0;

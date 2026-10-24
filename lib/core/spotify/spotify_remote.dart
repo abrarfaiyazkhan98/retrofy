@@ -10,6 +10,10 @@ class SpotifyPlayerState {
   final String? trackUri;
   final String? trackName;
   final List<String> artists;
+
+  /// `spotify:artist:<id>` for each of [artists], at the same index; null
+  /// where Spotify reports none (e.g. local files in Spotify).
+  final List<String?> artistUris;
   final String? albumName;
   final String? imageUri;
   final int durationMs;
@@ -25,6 +29,7 @@ class SpotifyPlayerState {
     this.trackUri,
     this.trackName,
     this.artists = const [],
+    this.artistUris = const [],
     this.albumName,
     this.imageUri,
     this.durationMs = 0,
@@ -43,12 +48,19 @@ class SpotifyPlayerState {
 
   factory SpotifyPlayerState.fromMap(Map<Object?, Object?> map, DateTime now) {
     int asInt(Object? value) => value is num ? value.toInt() : 0;
+    final names = map['artists'] as List? ?? const [];
+    final uris = map['artistUris'] as List? ?? const [];
     return SpotifyPlayerState(
       trackUri: map['trackUri'] as String?,
       trackName: map['trackName'] as String?,
       artists: [
-        for (final artist in map['artists'] as List? ?? const [])
+        for (final artist in names)
           if (artist is String) artist,
+      ],
+      artistUris: [
+        for (var i = 0; i < names.length; i++)
+          if (names[i] is String)
+            i < uris.length && uris[i] is String ? uris[i] as String : null,
       ],
       albumName: map['albumName'] as String?,
       imageUri: map['imageUri'] as String?,

@@ -227,14 +227,18 @@ object SpotifyRemoteBridge : MethodChannel.MethodCallHandler, EventChannel.Strea
 
     private fun playerStateMap(state: PlayerState): Map<String, Any?> {
         val track = state.track
-        val artists = track?.artists?.mapNotNull { it?.name }
-            ?.takeIf { it.isNotEmpty() }
-            ?: listOfNotNull(track?.artist?.name)
+        // Names and URIs stay index-aligned so Go to Artist opens the right
+        // artist page by its Spotify ID, never by a name search.
+        val artistList = track?.artists?.filterNotNull()?.takeIf { it.isNotEmpty() }
+            ?: listOfNotNull(track?.artist)
+        val artists = artistList.map { it.name ?: "" }
+        val artistUris = artistList.map { it.uri }
         return mapOf(
             "type" to "playerState",
             "trackUri" to track?.uri,
             "trackName" to track?.name,
             "artists" to artists,
+            "artistUris" to artistUris,
             "albumName" to track?.album?.name,
             "imageUri" to track?.imageUri?.raw,
             "durationMs" to (track?.duration ?: 0L),

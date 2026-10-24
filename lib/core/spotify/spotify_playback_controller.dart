@@ -170,6 +170,7 @@ class SpotifyPlaybackController extends Notifier<SpotifyPlaybackState> {
                   trackUri: state.player!.trackUri,
                   trackName: state.player!.trackName,
                   artists: state.player!.artists,
+                  artistUris: state.player!.artistUris,
                   albumName: state.player!.albumName,
                   imageUri: state.player!.imageUri,
                   durationMs: state.player!.durationMs,

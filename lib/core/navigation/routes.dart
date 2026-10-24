@@ -27,6 +27,8 @@ import 'package:classipod/features/music/search/screens/search_more_options_moda
 import 'package:classipod/features/music/search/screens/search_screen.dart';
 import 'package:classipod/features/music/songs/screens/songs_more_options_modal.dart';
 import 'package:classipod/features/music/songs/screens/songs_screen.dart';
+import 'package:classipod/features/now_playing/artist/artist_choice_screen.dart';
+import 'package:classipod/features/now_playing/artist/go_to_artist.dart';
 import 'package:classipod/features/now_playing/screen/now_playing_more_options_screen.dart';
 import 'package:classipod/features/now_playing/screen/now_playing_screen.dart';
 import 'package:classipod/features/now_playing/widgets/now_playing_idle_navigation.dart';
@@ -62,6 +64,7 @@ enum Routes {
   missingTracks,
   nowPlaying,
   nowPlayingMoreOptions,
+  artistChoice,
   sleepTimer,
   musicMenu,
   coverFlow,
@@ -116,6 +119,8 @@ enum Routes {
         return context.localization.nowPlayingScreenTitle;
       case nowPlayingMoreOptions:
         return context.localization.nowPlayingScreenTitle;
+      case artistChoice:
+        return context.localization.goToArtist;
       case sleepTimer:
         return context.localization.sleepTimerTitle;
       case musicMenu:
@@ -350,6 +355,19 @@ final routerProvider = Provider(
                           key: state.pageKey,
                           child: const ScreenPageContent(
                             child: NowPlayingMoreOptionsScreen(),
+                          ),
+                        ),
+                      ),
+                      GoRoute(
+                        path: Routes.artistChoice.name,
+                        name: Routes.artistChoice.name,
+                        parentNavigatorKey: rootNavigatorKey,
+                        pageBuilder: (context, state) => CupertinoPage(
+                          key: state.pageKey,
+                          child: ScreenPageContent(
+                            child: ArtistChoiceScreen(
+                              artists: state.extra! as List<ArtistLink>,
+                            ),
                           ),
                         ),
                       ),

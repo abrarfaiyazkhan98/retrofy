@@ -67,6 +67,13 @@ class SyncedLyricsViewState extends ConsumerState<SyncedLyricsView> {
   /// Called when the wheel scrolls the lyrics, so following waits a moment.
   void pauseFollowing() => _followAfter = DateTime.now().add(_manualPause);
 
+  /// Returns to the line being sung at once, after manual scrolling.
+  void resumeFollowing() {
+    _followAfter = null;
+    _current = -2;
+    _onPosition();
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -92,6 +99,8 @@ class SyncedLyricsViewState extends ConsumerState<SyncedLyricsView> {
         .displayPosition;
     final index = widget.lyrics.indexAt(position + _lead);
     if (index == _current) return;
+    // Pausing stops position updates, so the highlight holds; a seek or a
+    // skip moves it on the next update.
     setState(() => _current = index);
     final follow = _followAfter;
     if (follow != null && DateTime.now().isBefore(follow)) return;
@@ -150,48 +159,55 @@ class SyncedLyricsViewState extends ConsumerState<SyncedLyricsView> {
       ),
     );
 
-    return CupertinoScrollbar(
-      controller: widget.scrollController,
-      child: SingleChildScrollView(
+    return NotificationListener<UserScrollNotification>(
+      // Dragging the lyrics by touch pauses following, like the wheel.
+      onNotification: (_) {
+        pauseFollowing();
+        return false;
+      },
+      child: CupertinoScrollbar(
         controller: widget.scrollController,
-        padding: const EdgeInsets.only(right: 10, top: 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (!lyrics.isSynced)
-              Text(lyrics.plain ?? '', style: base)
-            else
-              for (var i = 0; i < lyrics.lines.length; i++)
-                GestureDetector(
-                  key: _lineKeys[i],
-                  behavior: HitTestBehavior.opaque,
-                  onTap: onLineTap == null
-                      ? null
-                      : () => onLineTap(lyrics.lines[i].time),
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: gap),
-                    child: AnimatedDefaultTextStyle(
-                      duration: reduceMotion
-                          ? Duration.zero
-                          : const Duration(milliseconds: 220),
-                      style: base.copyWith(
-                        color: i == _current
-                            ? accent
-                            : CupertinoColors.white.withValues(
-                                alpha: i < _current ? 0.42 : 0.62,
-                              ),
-                      ),
-                      // Instrumental gaps are blank lines in LRC.
-                      child: Text(
-                        lyrics.lines[i].text.isEmpty
-                            ? '♪'
-                            : lyrics.lines[i].text,
+        child: SingleChildScrollView(
+          controller: widget.scrollController,
+          padding: const EdgeInsets.only(right: 10, top: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (!lyrics.isSynced)
+                Text(lyrics.plain ?? '', style: base)
+              else
+                for (var i = 0; i < lyrics.lines.length; i++)
+                  GestureDetector(
+                    key: _lineKeys[i],
+                    behavior: HitTestBehavior.opaque,
+                    onTap: onLineTap == null
+                        ? null
+                        : () => onLineTap(lyrics.lines[i].time),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: gap),
+                      child: AnimatedDefaultTextStyle(
+                        duration: reduceMotion
+                            ? Duration.zero
+                            : const Duration(milliseconds: 220),
+                        style: base.copyWith(
+                          color: i == _current
+                              ? accent
+                              : CupertinoColors.white.withValues(
+                                  alpha: i < _current ? 0.42 : 0.62,
+                                ),
+                        ),
+                        // Instrumental gaps are blank lines in LRC.
+                        child: Text(
+                          lyrics.lines[i].text.isEmpty
+                              ? '♪'
+                              : lyrics.lines[i].text,
+                        ),
                       ),
                     ),
                   ),
-                ),
-            attribution,
-          ],
+              attribution,
+            ],
+          ),
         ),
       ),
     );

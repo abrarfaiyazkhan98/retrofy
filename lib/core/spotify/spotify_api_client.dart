@@ -224,6 +224,14 @@ class SpotifyApiClient {
       ?SpotifyAlbum.fromJson(item),
   ];
 
+  /// The artists credited on one track, with their Spotify IDs.
+  Future<List<SpotifyArtist>> trackArtists(String trackId) async {
+    final response = await get('tracks/$trackId');
+    final artists = response['artists'];
+    if (artists is! List) throw const SpotifyException('response');
+    return [for (final artist in artists) ?SpotifyArtist.fromJson(artist)];
+  }
+
   /// Recently played has no playing context, so positions are only for keys.
   Future<List<MusicMetadata>> recentlyPlayed() async {
     final response = await get('me/player/recently-played', {'limit': '50'});

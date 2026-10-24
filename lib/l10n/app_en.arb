@@ -871,5 +871,33 @@
   "legalese": "Copyright (c) 2025, Aditya R. This product includes software developed by Aditya R (Classipod). Spotify is a trademark of Spotify AB; Retrofy is not affiliated with Spotify.",
   "@legalese": {
     "description": "Legal text shown on the open-source licences page"
+  },
+  "okButtonText": "OK",
+  "@okButtonText": {
+    "description": "Button that dismisses a message"
+  },
+  "goToArtist": "Go to Artist",
+  "@goToArtist": {
+    "description": "Now Playing action that opens the playing artist's Spotify page"
+  },
+  "artistUnavailable": "The artist's page is unavailable for this track.",
+  "@artistUnavailable": {
+    "description": "Shown when Go to Artist cannot find or open the artist"
+  },
+  "liveLyricsLabel": "LIVE LYRICS",
+  "@liveLyricsLabel": {
+    "description": "Label above lyrics that follow the song"
+  },
+  "lyricsLabel": "LYRICS",
+  "@lyricsLabel": {
+    "description": "Label above lyrics without timing"
+  },
+  "lyricsUnavailable": "Lyrics unavailable for this track.",
+  "@lyricsUnavailable": {
+    "description": "Shown in Now Playing when no lyrics exist for the track"
+  },
+  "lyricsLoading": "Looking for lyrics…",
+  "@lyricsLoading": {
+    "description": "Shown in Now Playing while lyrics load"
   }
 }
