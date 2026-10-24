@@ -197,6 +197,36 @@ void main() {
       expect(requests, hasLength(2));
     });
 
+    testWidgets('a failed lookup is retried while the track is shown', (
+      tester,
+    ) async {
+      var available = false;
+      respond = () => available
+          ? http.Response(
+              jsonEncode({
+                'syncedLyrics': '[00:08.11] We watch that moon sink',
+              }),
+              200,
+            )
+          : http.Response('', 503);
+      final c = container();
+      final sub = c.listen(lyricsProvider(spotifyTrack()), (_, _) {});
+      addTearDown(sub.close);
+      for (var i = 0; i < 5; i++) {
+        await tester.pump();
+      }
+      expect(c.read(lyricsProvider(spotifyTrack())).value, isNull);
+      final failedRequests = requests.length;
+
+      available = true;
+      await tester.pump(lyricsRetryDelay);
+      for (var i = 0; i < 5; i++) {
+        await tester.pump();
+      }
+      expect(requests.length, greaterThan(failedRequests));
+      expect(c.read(lyricsProvider(spotifyTrack())).value?.isSynced, isTrue);
+    });
+
     test('synced embedded lyrics win without a network call', () async {
       final lyrics = await read(
         container(),

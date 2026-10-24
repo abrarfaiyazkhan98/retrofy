@@ -834,6 +834,22 @@ void main() {
       },
     );
 
+    test('shuffling Liked Songs while it plays starts a new track', () async {
+      await container
+          .read(musicSourceProvider.notifier)
+          .choose(MusicSource.spotify);
+      await service().shuffleMyMusic();
+      await emitState('liked7', shuffling: true);
+      remote.calls.clear();
+      // Spotify keeps playing liked7 when its own context is requested.
+      await service().shuffleMyMusic();
+      expect(remote.calls, [
+        'setShuffle true',
+        'play spotify:user:u1:collection',
+        'skipNext',
+      ]);
+    });
+
     test('an empty Liked Songs reports it and plays nothing', () async {
       await container
           .read(musicSourceProvider.notifier)

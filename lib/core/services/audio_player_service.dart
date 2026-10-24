@@ -462,11 +462,22 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
       throw const SpotifyException('no_liked_songs');
     }
     final profile = auth.profile ?? await api.me();
+    final mark = _spotify.requestMark;
     await playSpotify(
       tracks: const [],
       contextUri: 'spotify:user:${profile.id}:collection',
       shuffle: true,
     );
+    // When Liked Songs is already playing, Spotify keeps the current track;
+    // a shuffle should start somewhere new, so move on to the next one.
+    final before = mark.before;
+    if (before == null) return;
+    final settled = await _spotify.confirmTrack(
+      before,
+      mark: mark,
+      timeout: const Duration(seconds: 2),
+    );
+    if (settled == before) await _spotify.skipNext();
   }
 
   Future<void> setLoopMode(LoopMode loopMode) async {

@@ -159,6 +159,11 @@ final lrcFileReaderProvider = Provider<Future<String?> Function(String)>(
 /// 1. embedded tag lyrics (synced when they carry LRC timestamps),
 /// 2. a `.lrc` file beside a local track,
 /// 3. LRCLIB, for Spotify tracks.
+///
+/// A failed LRCLIB lookup (offline, 503) is not cached and is retried after
+/// [lyricsRetryDelay] while the track is on screen.
+const lyricsRetryDelay = Duration(seconds: 30);
+
 final lyricsProvider = FutureProvider.autoDispose.family<Lyrics?, MusicMetadata>((
   ref,
   track,
@@ -189,6 +194,10 @@ final lyricsProvider = FutureProvider.autoDispose.family<Lyrics?, MusicMetadata>
     debugPrint(
       'Lyrics lookup failed: ${error is HttpException ? error.message : error.runtimeType}',
     );
+    // While the track is still shown, try again a little later; the timer
+    // dies with the provider, so nothing polls once the track changes.
+    final retry = Timer(lyricsRetryDelay, ref.invalidateSelf);
+    ref.onDispose(retry.cancel);
     return null;
   }
 });
