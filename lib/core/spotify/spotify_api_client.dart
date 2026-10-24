@@ -193,6 +193,14 @@ class SpotifyApiClient {
     _trackOf,
   );
 
+  /// How many Liked Songs the user has, from a one-item page.
+  Future<int> savedTrackCount() async {
+    final response = await get('me/tracks', {'limit': '1'});
+    final total = response['total'];
+    if (total is! int) throw const SpotifyException('response');
+    return total;
+  }
+
   Future<List<SpotifyAlbum>> savedAlbums() async => [
     for (final item in await _paged('me/albums', {'limit': '50'}))
       if (item case final Map entry) ?SpotifyAlbum.fromJson(entry['album']),

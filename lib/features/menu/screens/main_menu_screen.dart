@@ -8,6 +8,7 @@ import 'package:classipod/core/widgets/display_list_tile.dart';
 import 'package:classipod/features/custom_screen_elements/custom_screen.dart';
 import 'package:classipod/features/menu/controller/split_screen_controller.dart';
 import 'package:classipod/features/menu/models/split_screen_type.dart';
+import 'package:classipod/features/spotify/widgets/spotify_status_view.dart';
 import 'package:classipod/features/tutorial/controller/tutorial_controller.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,7 +27,7 @@ enum _MainMenuDisplayItems {
       case settings:
         return context.localization.settingsScreenTitle;
       case shuffleSongs:
-        return context.localization.shuffleSongsMenuTitle;
+        return context.localization.shuffleMyMusicTitle;
       case nowPlaying:
         return context.localization.nowPlayingScreenTitle;
     }
@@ -72,7 +73,14 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen>
         context.goNamed(Routes.settings.name);
         break;
       case _MainMenuDisplayItems.shuffleSongs:
-        await ref.read(audioPlayerServiceProvider.notifier).shuffleAllSongs();
+        try {
+          await ref.read(audioPlayerServiceProvider.notifier).shuffleMyMusic();
+        } catch (error) {
+          // Nothing is claimed to play: Now Playing only opens once the
+          // player has accepted the shuffle.
+          if (mounted) await _showShuffleError(error);
+          return;
+        }
         await _navigateToNowPlayingScreen();
         break;
     }
@@ -87,6 +95,21 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen>
     if (!mounted) return;
     unawaited(ref.read(splitScreenViewControllerProvider).openSplitView());
   }
+
+  Future<void> _showShuffleError(Object error) => showCupertinoDialog<void>(
+    context: context,
+    barrierDismissible: true,
+    builder: (dialogContext) => CupertinoAlertDialog(
+      title: Text(context.localization.shuffleMyMusicTitle),
+      content: Text(spotifyErrorText(context, error)),
+      actions: [
+        CupertinoDialogAction(
+          onPressed: () => Navigator.of(dialogContext).pop(),
+          child: Text(context.localization.okButtonText),
+        ),
+      ],
+    ),
+  );
 
   void _changeSplitScreenType() {
     if (!mounted || context.router.locationNamed != routeName) return;

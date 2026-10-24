@@ -15,6 +15,7 @@ import 'package:classipod/core/spotify/spotify_auth_controller.dart';
 import 'package:classipod/core/spotify/spotify_playback_controller.dart';
 import 'package:classipod/core/spotify/spotify_remote.dart';
 import 'package:classipod/core/subsonic/subsonic_controller.dart';
+import 'package:classipod/features/menu/providers/music_source_provider.dart';
 import 'package:classipod/features/music/album/models/album_model.dart';
 import 'package:classipod/features/music/playlist/models/playlist_model.dart';
 import 'package:classipod/features/now_playing/models/now_playing_model.dart';
@@ -421,6 +422,41 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
           .read(settingsPreferencesControllerProvider.notifier)
           .setInitialRepeatMode();
     });
+  }
+
+  /// Whether Shuffle My Music uses Spotify: when Spotify is the Music
+  /// source, or when there is no local library to shuffle.
+  bool get shuffleMyMusicUsesSpotify {
+    final signedIn =
+        ref.read(spotifyAuthControllerProvider).value?.signedIn ?? false;
+    if (!signedIn) return false;
+    final library = ref.read(filteredAudioFilesProvider).value ?? const [];
+    return ref.read(musicSourceProvider) == MusicSource.spotify ||
+        library.isEmpty;
+  }
+
+  /// Shuffle My Music: the user's Spotify Liked Songs, or every library
+  /// song. Throws [SpotifyException] when Spotify cannot start it.
+  Future<void> shuffleMyMusic() => shuffleMyMusicUsesSpotify
+      ? shuffleSpotifyLikedSongs()
+      : shuffleAllSongs();
+
+  /// Plays the signed-in user's Liked Songs with Spotify's own shuffle.
+  /// Spotify owns that queue, so Retrofy never builds a competing one; it
+  /// only mirrors the tracks the Spotify app reports.
+  Future<void> shuffleSpotifyLikedSongs() async {
+    final auth = await ref.read(spotifyAuthControllerProvider.future);
+    if (!auth.signedIn) throw const SpotifyException('signin');
+    final api = ref.read(spotifyApiProvider);
+    if (await api.savedTrackCount() == 0) {
+      throw const SpotifyException('no_liked_songs');
+    }
+    final profile = auth.profile ?? await api.me();
+    await playSpotify(
+      tracks: const [],
+      contextUri: 'spotify:user:${profile.id}:collection',
+      shuffle: true,
+    );
   }
 
   Future<void> setLoopMode(LoopMode loopMode) async {

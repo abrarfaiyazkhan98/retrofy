@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
+import 'dart:convert';
 
 import 'package:audio_service/audio_service.dart';
 
@@ -10,16 +11,20 @@ import 'package:classipod/core/providers/shared_preferences_with_cache_provider.
 import 'package:classipod/core/services/audio_player_service.dart';
 import 'package:classipod/core/services/playback/library_audio_handler.dart';
 import 'package:classipod/core/services/playback/playback_backend.dart';
+import 'package:classipod/core/spotify/spotify_api_client.dart';
 import 'package:classipod/core/spotify/spotify_auth.dart';
 import 'package:classipod/core/spotify/spotify_auth_controller.dart';
 import 'package:classipod/core/spotify/spotify_config.dart';
 import 'package:classipod/core/spotify/spotify_playback_controller.dart';
 import 'package:classipod/core/spotify/spotify_remote.dart';
+import 'package:classipod/features/menu/providers/music_source_provider.dart';
 import 'package:classipod/features/now_playing/models/now_playing_model.dart';
 import 'package:classipod/features/now_playing/provider/now_playing_details_provider.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
@@ -236,6 +241,10 @@ void main() {
   late LocalPlayer player;
   late ProviderContainer container;
   late DateTime now;
+
+  /// Liked Songs the Web API reports, and the requests it received.
+  var likedTotal = 120;
+  final apiRequests = <String>[];
   final playlist = [
     spotifyTrack('a', 0),
     spotifyTrack('b', 5),
@@ -298,6 +307,8 @@ void main() {
   setUp(() async {
     SharedPreferencesAsyncPlatform.instance =
         InMemorySharedPreferencesAsync.empty();
+    likedTotal = 120;
+    apiRequests.clear();
     remote = FakeSpotifyRemote()..clock = () => now;
     remote.contexts[contextUri] = [
       for (var i = 0; i <= 6; i++)
@@ -328,6 +339,22 @@ void main() {
           ),
         ),
         spotifyAuthControllerProvider.overrideWith(SignedInAuth.new),
+        spotifyApiProvider.overrideWithValue(
+          SpotifyApiClient(
+            ({forceRefresh = false}) async => 'token',
+            client: MockClient((request) async {
+              apiRequests.add(request.url.path);
+              final body = switch (request.url.path) {
+                '/v1/me/tracks' => {'items': [], 'total': likedTotal},
+                '/v1/me' => {'id': 'u1', 'display_name': 'Listener'},
+                _ => null,
+              };
+              return body == null
+                  ? http.Response('', 404)
+                  : http.Response(jsonEncode(body), 200);
+            }),
+          ),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -771,6 +798,79 @@ void main() {
       await settle();
       expect(remote.calls.last, 'disconnect');
       expect(spotify().connection, SpotifyConnection.disconnected);
+    });
+  });
+
+  group('shuffle_my_music', () {
+    test(
+      'with Spotify as the source, Liked Songs shuffle in Spotify',
+      () async {
+        await container
+            .read(musicSourceProvider.notifier)
+            .choose(MusicSource.spotify);
+        expect(service().shuffleMyMusicUsesSpotify, isTrue);
+        await service().shuffleMyMusic();
+        expect(remote.calls, [
+          'connect',
+          'setShuffle true',
+          'play spotify:user:u1:collection',
+        ]);
+        expect(
+          remote.calls,
+          isNot(contains('pause')),
+          reason: 'Spotify is never paused to shuffle an empty library',
+        );
+        expect(backend(), PlaybackBackend.spotify);
+        expect(player.playing, isFalse);
+        // Spotify picks the tracks; Now Playing follows what it reports.
+        await emitState('liked7', shuffling: true);
+        expect(nowPlaying().currentMetadata?.songId, 'spotify:track:liked7');
+        expect(nowPlaying().isShuffleEnabled, isTrue);
+        await emitState('liked3', shuffling: true);
+        expect(nowPlaying().currentMetadata?.songId, 'spotify:track:liked3');
+      },
+    );
+
+    test('an empty Liked Songs reports it and plays nothing', () async {
+      await container
+          .read(musicSourceProvider.notifier)
+          .choose(MusicSource.spotify);
+      likedTotal = 0;
+      expect(await errorCode(service().shuffleMyMusic), 'no_liked_songs');
+      expect(remote.calls.where((c) => c.startsWith('play')), isEmpty);
+    });
+
+    test('free accounts may shuffle Liked Songs', () async {
+      await container
+          .read(musicSourceProvider.notifier)
+          .choose(MusicSource.spotify);
+      remote.controller.add(
+        const SpotifyCapabilitiesEvent(canPlayOnDemand: false),
+      );
+      await settle();
+      expect(await errorCode(service().shuffleMyMusic), 'none');
+      expect(remote.calls.last, 'play spotify:user:u1:collection');
+    });
+
+    test('with the library as the source, local songs shuffle', () async {
+      await container
+          .read(musicSourceProvider.notifier)
+          .choose(MusicSource.library);
+      expect(service().shuffleMyMusicUsesSpotify, isFalse);
+      await service().shuffleMyMusic();
+      expect(remote.calls, isEmpty, reason: 'Spotify is not involved');
+      expect(apiRequests, isEmpty);
+      expect(backend(), PlaybackBackend.library);
+      expect(nowPlaying().shuffleMode, PlaybackShuffleMode.songs);
+    });
+
+    test('signed out, Shuffle My Music uses the library', () async {
+      await container
+          .read(musicSourceProvider.notifier)
+          .choose(MusicSource.spotify);
+      (container.read(spotifyAuthControllerProvider.notifier) as SignedInAuth)
+          .signOutNow();
+      expect(service().shuffleMyMusicUsesSpotify, isFalse);
     });
   });
 

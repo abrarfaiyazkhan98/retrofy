@@ -899,5 +899,13 @@
   "lyricsLoading": "Looking for lyrics…",
   "@lyricsLoading": {
     "description": "Shown in Now Playing while lyrics load"
+  },
+  "shuffleMyMusicTitle": "Shuffle My Music",
+  "@shuffleMyMusicTitle": {
+    "description": "Main menu item that shuffles the user's music (Spotify Liked Songs or the library)"
+  },
+  "spotifyErrorNoLikedSongs": "Your Liked Songs on Spotify is empty.",
+  "@spotifyErrorNoLikedSongs": {
+    "description": "Shown when Shuffle My Music finds no Liked Songs"
   }
 }
