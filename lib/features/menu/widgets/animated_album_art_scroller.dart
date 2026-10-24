@@ -7,6 +7,7 @@ import 'package:classipod/core/widgets/artwork_image.dart';
 import 'package:classipod/core/widgets/empty_state_widget.dart';
 import 'package:classipod/features/menu/models/split_screen_type.dart';
 import 'package:classipod/features/music/album/providers/album_details_provider.dart';
+import 'package:classipod/features/now_playing/provider/now_playing_details_provider.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -41,8 +42,12 @@ class _AnimatedAlbumArtScrollerState
   void _getRandomAlbumArt() {
     final albumDetails = ref.read(albumDetailsProvider);
     if (albumDetails.isEmpty) {
+      // Without a local library (e.g. Spotify only), show the cover of
+      // what is playing rather than "No Music".
+      final playing = ref.read(nowPlayingArtworkPathProvider);
       setState(() {
-        _isEmptyState = true;
+        _isEmptyState = playing == null;
+        _albumArtPath = playing;
       });
       return;
     }
@@ -109,15 +114,20 @@ class _AnimatedAlbumArtScrollerState
     _setRandomAnimationDirection();
     _animationController.addStatusListener(_repeatAnimation);
     if (!_isEmptyState) unawaited(_animationController.forward());
-    ref.listenManual(albumDetailsProvider, (_, albums) {
-      _getRandomAlbumArt();
-      if (albums.isEmpty) {
-        _animationController.stop();
-      } else {
-        _setRandomAnimationDirection();
-        unawaited(_animationController.forward(from: 0));
-      }
+    ref.listenManual(albumDetailsProvider, (_, _) => _restart());
+    ref.listenManual(nowPlayingArtworkPathProvider, (_, _) {
+      if (ref.read(albumDetailsProvider).isEmpty) _restart();
     });
+  }
+
+  void _restart() {
+    _getRandomAlbumArt();
+    if (_isEmptyState) {
+      _animationController.stop();
+    } else {
+      _setRandomAnimationDirection();
+      unawaited(_animationController.forward(from: 0));
+    }
   }
 
   @override

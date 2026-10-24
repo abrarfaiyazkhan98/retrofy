@@ -2,6 +2,7 @@ import 'package:classipod/core/constants/app_palette.dart';
 import 'package:classipod/core/extensions/build_context_extensions.dart';
 import 'package:classipod/core/theme/ipod_gradients.dart';
 import 'package:classipod/core/theme/ipod_typography.dart';
+import 'package:classipod/core/widgets/artwork_image.dart';
 import 'package:classipod/core/widgets/marquee_text.dart';
 import 'package:classipod/features/menu/models/split_screen_type.dart';
 import 'package:classipod/features/now_playing/provider/now_playing_details_provider.dart';
@@ -16,6 +17,7 @@ class NowPlayingPreviewWidget extends ConsumerWidget {
     final currentMetadata = ref.watch(
       nowPlayingDetailsProvider.select((e) => e.currentMetadata),
     );
+    final artworkPath = ref.watch(nowPlayingArtworkPathProvider);
 
     return SizedBox(
       key: const ValueKey(SplitScreenType.nowPlaying),
@@ -29,11 +31,33 @@ class NowPlayingPreviewWidget extends ConsumerWidget {
           child: Column(
             children: [
               Spacer(flex: (currentMetadata != null) ? 2 : 1),
-              const Icon(
-                CupertinoIcons.music_note_2,
-                size: 65,
-                color: AppPalette.previewForeground,
-              ),
+              if (currentMetadata != null && artworkPath != null)
+                Flexible(
+                  flex: 6,
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: Image(
+                        key: ValueKey(artworkPath),
+                        image: artworkImage(ref, artworkPath),
+                        fit: BoxFit.cover,
+                        gaplessPlayback: true,
+                        errorBuilder: (_, _, _) => const Icon(
+                          CupertinoIcons.music_note_2,
+                          size: 65,
+                          color: AppPalette.previewForeground,
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              else
+                const Icon(
+                  CupertinoIcons.music_note_2,
+                  size: 65,
+                  color: AppPalette.previewForeground,
+                ),
               const Spacer(),
               if (currentMetadata != null) ...[
                 MarqueeText(
