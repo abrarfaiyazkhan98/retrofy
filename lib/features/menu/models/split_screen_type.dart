@@ -27,5 +27,4 @@ enum SplitScreenType {
   refreshLibrary,
   excludeDirectories,
   resetSettings,
-  donate,
 }

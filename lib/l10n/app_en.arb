@@ -182,14 +182,6 @@
   "@showAppTutorialSettingTitle": {
     "description": "The title of the show app tutorial setting"
   },
-  "donateSettingTitle": "Donate",
-  "@donateSettingTitle": {
-    "description": "The title of the donate setting"
-  },
-  "donateSettingDescription": "If you like this app, please consider donating.",
-  "@donateSettingDescription": {
-    "description": "The description of the donate setting"
-  },
   "noMusicFilesFound": "No Music",
   "@noMusicFilesFound": {
     "description": "The message displayed when no music files are found"

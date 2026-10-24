@@ -61,6 +61,7 @@
   labelled, and tempos are only matched with real BPM data.
 - The iPod body is pure OLED black (#000000) with no gradient, texture or
   shadow; the Device Color setting is removed.
+- The Donate setting (Classipod's donation link) is removed.
 - About is replaced by Settings › Legal: open-source licences (including
   Retrofy's BSD notice), privacy policy, terms and source code.
 - New orange iPod launcher icon, with adaptive, themed (monochrome) and
