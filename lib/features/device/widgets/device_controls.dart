@@ -10,12 +10,12 @@ import 'package:classipod/core/custom_painter/previous_button_custom_painter.dar
 import 'package:classipod/core/extensions/build_context_extensions.dart';
 import 'package:classipod/core/navigation/routes.dart';
 import 'package:classipod/features/device/models/device_action.dart';
+import 'package:classipod/features/device/models/device_style.dart';
 import 'package:classipod/features/device/services/device_buttons_service_provider.dart';
 import 'package:classipod/features/menu/controller/split_screen_controller.dart';
 import 'package:classipod/features/settings/controller/settings_preferences_controller.dart';
 import 'package:classipod/features/settings/models/click_wheel_sensitivity.dart';
 import 'package:classipod/features/settings/models/click_wheel_size.dart';
-import 'package:classipod/features/settings/models/device_color.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -102,12 +102,7 @@ class _DeviceControlsState extends ConsumerState<DeviceControls> {
 
   @override
   Widget build(BuildContext context) {
-    final DeviceColor deviceColor = ref.watch(
-      settingsPreferencesControllerProvider.select(
-        (settings) => settings.deviceColor,
-      ),
-    );
-    final deviceColorStyle = deviceColor.style;
+    const deviceStyle = DeviceStyle.oledBlack;
     final clickWheelSize = ref.watch(
       settingsPreferencesControllerProvider.select(
         (settings) => settings.clickWheelSize,
@@ -195,7 +190,7 @@ class _DeviceControlsState extends ConsumerState<DeviceControls> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: deviceColorStyle.controlBackgroundColor,
+              color: deviceStyle.controlBackgroundColor,
             ),
             clipBehavior: Clip.hardEdge,
             child: Column(
@@ -230,14 +225,14 @@ class _DeviceControlsState extends ConsumerState<DeviceControls> {
                       }
                     },
                     child: ColoredBox(
-                      color: deviceColorStyle.controlBackgroundColor,
+                      color: deviceStyle.controlBackgroundColor,
                       child: Align(
                         alignment: Alignment.topCenter,
                         child: Text(
                           context.localization.menuButtonText,
                           key: menuButtonGlobalKey,
                           style: TextStyle(
-                            color: deviceColorStyle.buttonAccentColor,
+                            color: deviceStyle.buttonAccentColor,
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
@@ -265,13 +260,13 @@ class _DeviceControlsState extends ConsumerState<DeviceControls> {
                         child: SizedBox(
                           height: selectDiameter,
                           child: ColoredBox(
-                            color: deviceColorStyle.controlBackgroundColor,
+                            color: deviceStyle.controlBackgroundColor,
                             child: Align(
                               alignment: Alignment.centerLeft,
                               child: CustomPaint(
                                 size: const Size(20, 10),
                                 painter: PreviousButtonCustomPainter(
-                                  color: deviceColorStyle.buttonIconColor,
+                                  color: deviceStyle.buttonIconColor,
                                 ),
                               ),
                             ),
@@ -297,7 +292,7 @@ class _DeviceControlsState extends ConsumerState<DeviceControls> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
-                              color: deviceColorStyle.controlBorderColor,
+                              color: deviceStyle.controlBorderColor,
                             ),
                             image: const DecorationImage(
                               image: AssetImage(Assets.noiseImage),
@@ -306,8 +301,7 @@ class _DeviceControlsState extends ConsumerState<DeviceControls> {
                             gradient: LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
-                              colors:
-                                  deviceColorStyle.innerButtonGradientColors,
+                              colors: deviceStyle.innerButtonGradientColors,
                             ),
                           ),
                         ),
@@ -328,13 +322,13 @@ class _DeviceControlsState extends ConsumerState<DeviceControls> {
                         child: SizedBox(
                           height: selectDiameter,
                           child: ColoredBox(
-                            color: deviceColorStyle.controlBackgroundColor,
+                            color: deviceStyle.controlBackgroundColor,
                             child: Align(
                               alignment: Alignment.centerRight,
                               child: CustomPaint(
                                 size: const Size(20, 10),
                                 painter: NextButtonCustomPainter(
-                                  color: deviceColorStyle.buttonIconColor,
+                                  color: deviceStyle.buttonIconColor,
                                 ),
                               ),
                             ),
@@ -350,14 +344,14 @@ class _DeviceControlsState extends ConsumerState<DeviceControls> {
                         .read(deviceButtonsServiceProvider.notifier)
                         .playPauseButtonClick(),
                     child: ColoredBox(
-                      color: deviceColorStyle.controlBackgroundColor,
+                      color: deviceStyle.controlBackgroundColor,
                       child: Align(
                         alignment: Alignment.bottomCenter,
                         child: CustomPaint(
                           key: playPauseButtonGlobalKey,
                           size: const Size(26, 12),
                           painter: PlayPauseButtonCustomPainter(
-                            color: deviceColorStyle.buttonIconColor,
+                            color: deviceStyle.buttonIconColor,
                           ),
                         ),
                       ),

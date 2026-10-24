@@ -16,7 +16,6 @@ import 'package:classipod/features/settings/models/artwork_glow.dart';
 import 'package:classipod/features/settings/models/click_wheel_sensitivity.dart';
 import 'package:classipod/features/settings/models/click_wheel_size.dart';
 import 'package:classipod/features/settings/models/cover_flow_appearance.dart';
-import 'package:classipod/features/settings/models/device_color.dart';
 import 'package:classipod/features/settings/models/repeat_mode.dart';
 import 'package:classipod/features/settings/models/settings_preferences_model.dart';
 import 'package:classipod/features/settings/models/volume_mode.dart';
@@ -62,9 +61,6 @@ class SettingsPreferencesControllerNotifier
     );
     return SettingsPreferencesModel(
       languageLocaleCode: settingsPreferencesRepository.getLanguageLocaleCode(),
-      deviceColor: DeviceColor.fromName(
-        settingsPreferencesRepository.getDeviceColor(),
-      ),
       clickWheelSize: ClickWheelSize.values.byName(
         settingsPreferencesRepository.getClickWheelSize(),
       ),
@@ -161,16 +157,6 @@ class SettingsPreferencesControllerNotifier
     await ref
         .read(settingsPreferencesRepositoryProvider)
         .setLanguageLocaleCode(languageLocaleCode: locale.languageCode);
-  }
-
-  Future<void> setDeviceColor(DeviceColor deviceColor) async {
-    if (state.deviceColor == deviceColor) {
-      return;
-    }
-    state = state.copyWith(deviceColor: deviceColor);
-    await ref
-        .read(settingsPreferencesRepositoryProvider)
-        .setDeviceColor(deviceColorName: deviceColor.name);
   }
 
   Future<void> toggleClickWheelSize() async {
@@ -400,9 +386,6 @@ class SettingsPreferencesControllerNotifier
     await ref
         .read(settingsPreferencesRepositoryProvider)
         .setLanguageLocaleCode(languageLocaleCode: 'en');
-    await ref
-        .read(settingsPreferencesRepositoryProvider)
-        .setDeviceColor(deviceColorName: DeviceColor.silver.name);
     await ref
         .read(settingsPreferencesRepositoryProvider)
         .setTouchScreenEnabled(isTouchScreenEnabled: true);

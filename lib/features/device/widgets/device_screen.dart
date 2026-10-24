@@ -19,8 +19,6 @@ class DeviceScreen extends ConsumerWidget {
       ),
     );
 
-    final size = MediaQuery.sizeOf(context);
-
     return AbsorbPointer(
       absorbing: !isTouchScreenEnabled,
       child: Container(
@@ -34,10 +32,15 @@ class DeviceScreen extends ConsumerWidget {
             width: 5,
           ),
         ),
-        child: MediaQuery(
-          data: MediaQuery.of(context)
-              .copyWith(size: Size(size.width - 40 - 10, height - 10)),
-          child: child,
+        // Screens size themselves from the display, not the window: the
+        // device is capped in width and shares the window in split screen.
+        child: LayoutBuilder(
+          builder: (context, constraints) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(size: Size(constraints.maxWidth, constraints.maxHeight)),
+            child: child,
+          ),
         ),
       ),
     );

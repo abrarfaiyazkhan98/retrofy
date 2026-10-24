@@ -1,6 +1,5 @@
 enum SharedPreferencesKeys {
   languageLocaleCode,
-  deviceColor,
   clickWheelSize,
   clickWheelSensitivity,
   isTouchScreenEnabled,

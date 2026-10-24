@@ -6,7 +6,6 @@ import 'package:classipod/features/settings/models/artwork_glow.dart';
 import 'package:classipod/features/settings/models/click_wheel_sensitivity.dart';
 import 'package:classipod/features/settings/models/click_wheel_size.dart';
 import 'package:classipod/features/settings/models/cover_flow_appearance.dart';
-import 'package:classipod/features/settings/models/device_color.dart';
 import 'package:classipod/features/settings/models/repeat_mode.dart';
 import 'package:classipod/features/settings/models/volume_mode.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -29,13 +28,6 @@ class SettingsPreferencesRepository {
           SharedPreferencesKeys.languageLocaleCode.name,
         ) ??
         Constants.defaultLanguageLocaleCode;
-  }
-
-  String getDeviceColor() {
-    return _sharedPreferencesWithCache.getString(
-          SharedPreferencesKeys.deviceColor.name,
-        ) ??
-        DeviceColor.silver.name;
   }
 
   String getClickWheelSize() {
@@ -163,13 +155,6 @@ class SettingsPreferencesRepository {
     return _sharedPreferencesWithCache.setString(
       SharedPreferencesKeys.languageLocaleCode.name,
       languageLocaleCode,
-    );
-  }
-
-  Future<void> setDeviceColor({required String deviceColorName}) async {
-    return _sharedPreferencesWithCache.setString(
-      SharedPreferencesKeys.deviceColor.name,
-      deviceColorName,
     );
   }
 

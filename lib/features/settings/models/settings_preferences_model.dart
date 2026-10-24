@@ -3,13 +3,11 @@ import 'package:classipod/features/settings/models/artwork_glow.dart';
 import 'package:classipod/features/settings/models/click_wheel_sensitivity.dart';
 import 'package:classipod/features/settings/models/click_wheel_size.dart';
 import 'package:classipod/features/settings/models/cover_flow_appearance.dart';
-import 'package:classipod/features/settings/models/device_color.dart';
 import 'package:classipod/features/settings/models/repeat_mode.dart';
 import 'package:classipod/features/settings/models/volume_mode.dart';
 
 class SettingsPreferencesModel {
   final String languageLocaleCode;
-  final DeviceColor deviceColor;
   final ClickWheelSize clickWheelSize;
   final ClickWheelSensitivity clickWheelSensitivity;
   final bool isTouchScreenEnabled;
@@ -30,7 +28,6 @@ class SettingsPreferencesModel {
 
   SettingsPreferencesModel({
     required this.languageLocaleCode,
-    required this.deviceColor,
     required this.clickWheelSize,
     required this.clickWheelSensitivity,
     required this.isTouchScreenEnabled,
@@ -50,7 +47,6 @@ class SettingsPreferencesModel {
 
   SettingsPreferencesModel copyWith({
     String? languageLocaleCode,
-    DeviceColor? deviceColor,
     ClickWheelSize? clickWheelSize,
     ClickWheelSensitivity? clickWheelSensitivity,
     bool? isTouchScreenEnabled,
@@ -69,7 +65,6 @@ class SettingsPreferencesModel {
   }) {
     return SettingsPreferencesModel(
       languageLocaleCode: languageLocaleCode ?? this.languageLocaleCode,
-      deviceColor: deviceColor ?? this.deviceColor,
       clickWheelSize: clickWheelSize ?? this.clickWheelSize,
       clickWheelSensitivity:
           clickWheelSensitivity ?? this.clickWheelSensitivity,
@@ -93,7 +88,6 @@ class SettingsPreferencesModel {
   bool operator ==(Object other) {
     return other is SettingsPreferencesModel &&
         other.languageLocaleCode == languageLocaleCode &&
-        other.deviceColor == deviceColor &&
         other.clickWheelSize == clickWheelSize &&
         other.clickWheelSensitivity == clickWheelSensitivity &&
         other.isTouchScreenEnabled == isTouchScreenEnabled &&
@@ -114,7 +108,6 @@ class SettingsPreferencesModel {
   @override
   int get hashCode => Object.hash(
     languageLocaleCode,
-    deviceColor,
     clickWheelSize,
     clickWheelSensitivity,
     isTouchScreenEnabled,

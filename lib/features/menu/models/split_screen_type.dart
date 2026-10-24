@@ -11,7 +11,6 @@ enum SplitScreenType {
   sleepTimer,
   language,
   appTheme,
-  deviceColor,
   clickWheelSize,
   clickWheelSensitivity,
   touchScreen,

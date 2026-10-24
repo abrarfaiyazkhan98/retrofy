@@ -32,10 +32,9 @@ import 'package:classipod/features/now_playing/screen/now_playing_screen.dart';
 import 'package:classipod/features/now_playing/widgets/now_playing_idle_navigation.dart';
 import 'package:classipod/features/settings/controller/exclude_directories_controller.dart';
 import 'package:classipod/features/settings/controller/settings_preferences_controller.dart';
-import 'package:classipod/features/settings/screens/about_screen.dart';
-import 'package:classipod/features/settings/screens/device_color_selection_screen.dart';
 import 'package:classipod/features/settings/screens/exclude_directories_screen.dart';
 import 'package:classipod/features/settings/screens/language_selection_screen.dart';
+import 'package:classipod/features/settings/screens/legal_screen.dart';
 import 'package:classipod/features/settings/screens/library_settings_screen.dart';
 import 'package:classipod/features/settings/screens/missing_tracks_screen.dart';
 import 'package:classipod/features/settings/screens/settings_preferences_screen.dart';
@@ -57,9 +56,8 @@ enum Routes {
   menu,
   settings,
   librarySettings,
-  about,
+  legal,
   language,
-  deviceColor,
   excludeDirectories,
   missingTracks,
   nowPlaying,
@@ -106,12 +104,10 @@ enum Routes {
         return context.localization.settingsScreenTitle;
       case librarySettings:
         return context.localization.librarySettingsScreenTitle;
-      case about:
-        return context.localization.aboutScreenTitle;
+      case legal:
+        return context.localization.legalTitle;
       case language:
         return context.localization.languageScreenTitle;
-      case deviceColor:
-        return context.localization.deviceColorSettingTitle;
       case missingTracks:
         return context.localization.missingTracksTitle;
       case excludeDirectories:
@@ -254,12 +250,11 @@ final routerProvider = Provider(
                         const CupertinoPage(child: SettingsScreen()),
                     routes: [
                       GoRoute(
-                        path: Routes.about.name,
-                        name: Routes.about.name,
-                        parentNavigatorKey: rootNavigatorKey,
-                        pageBuilder: (context, state) => const CupertinoPage(
-                          child: ScreenPageContent(child: AboutScreen()),
-                        ),
+                        path: Routes.legal.name,
+                        name: Routes.legal.name,
+                        parentNavigatorKey: menuNavigatorKey,
+                        pageBuilder: (context, state) =>
+                            const CupertinoPage(child: LegalScreen()),
                       ),
                       GoRoute(
                         path: Routes.language.name,
@@ -267,14 +262,6 @@ final routerProvider = Provider(
                         parentNavigatorKey: menuNavigatorKey,
                         pageBuilder: (context, state) => const CupertinoPage(
                           child: LanguageSelectionScreen(),
-                        ),
-                      ),
-                      GoRoute(
-                        path: Routes.deviceColor.name,
-                        name: Routes.deviceColor.name,
-                        parentNavigatorKey: menuNavigatorKey,
-                        pageBuilder: (context, state) => const CupertinoPage(
-                          child: DeviceColorSelectionScreen(),
                         ),
                       ),
                       GoRoute(

@@ -92,10 +92,6 @@
   "@settingsScreenTitle": {
     "description": "The title of the settings screen"
   },
-  "aboutScreenTitle": "About",
-  "@aboutScreenTitle": {
-    "description": "The title of the about screen"
-  },
   "coverFlowScreenTitle": "Cover Flow",
   "@coverFlowScreenTitle": {
     "description": "The title of the cover flow screen"
@@ -150,10 +146,6 @@
   "@genreSongsScreenTitle": {
     "description": "The title of the genre songs screen"
   },
-  "deviceColorSettingTitle": "Device Color",
-  "@deviceColorSettingTitle": {
-    "description": "The title of the device color setting"
-  },
   "touchScreenSettingTitle": "Touch Screen Enabled",
   "@touchScreenSettingTitle": {
     "description": "The title of the touch screen setting"
@@ -197,14 +189,6 @@
   "donateSettingDescription": "If you like this app, please consider donating.",
   "@donateSettingDescription": {
     "description": "The description of the donate setting"
-  },
-  "versionAboutScreenTitle": "Version",
-  "@versionAboutScreenTitle": {
-    "description": "The title of the version tile in the about screen"
-  },
-  "madeWithLoveTitle": "Made with ❤️ by",
-  "@madeWithLoveTitle": {
-    "description": "The title of the made with love section in the about screen"
   },
   "noMusicFilesFound": "No Music",
   "@noMusicFilesFound": {
@@ -286,18 +270,6 @@
   "@themeSettingTitle": {
     "description": "Title for the theme selection setting"
   },
-  "silverDeviceColor": "Silver",
-  "@silverDeviceColor": {
-    "description": "The name of the silver device color"
-  },
-  "blackDeviceColor": "Black",
-  "@blackDeviceColor": {
-    "description": "The name of the black device color"
-  },
-  "oledBlackDeviceColor": "OLED Black",
-  "@oledBlackDeviceColor": {
-    "description": "The name of the OLED black device color"
-  },
   "lightThemeTitle": "Light",
   "@lightThemeTitle": {
     "description": "Label for the light theme option"
@@ -305,46 +277,6 @@
   "darkThemeTitle": "Dark",
   "@darkThemeTitle": {
     "description": "Label for the dark theme option"
-  },
-  "orangeDeviceColor": "Orange",
-  "@orangeDeviceColor": {
-    "description": "The name of the orange device color"
-  },
-  "yellowDeviceColor": "Yellow",
-  "@yellowDeviceColor": {
-    "description": "The name of the yellow device color"
-  },
-  "goldDeviceColor": "Gold",
-  "@goldDeviceColor": {
-    "description": "The name of the gold device color"
-  },
-  "purpleDeviceColor": "Purple",
-  "@purpleDeviceColor": {
-    "description": "The name of the purple device color"
-  },
-  "pinkDeviceColor": "Pink",
-  "@pinkDeviceColor": {
-    "description": "The name of the pink device color"
-  },
-  "brownDeviceColor": "Brown",
-  "@brownDeviceColor": {
-    "description": "The name of the brown device color"
-  },
-  "redDeviceColor": "Red",
-  "@redDeviceColor": {
-    "description": "The name of the red device color"
-  },
-  "blueDeviceColor": "Blue",
-  "@blueDeviceColor": {
-    "description": "The name of the blue device color"
-  },
-  "limeDeviceColor": "Lime",
-  "@limeDeviceColor": {
-    "description": "The name of the lime device color"
-  },
-  "greenDeviceColor": "Green",
-  "@greenDeviceColor": {
-    "description": "The name of the green device color"
   },
   "resetSettingsTitle": "Reset Settings",
   "@resetSettingsTitle": {
@@ -915,5 +847,29 @@
   "ambientModeSettingTitle": "Ambient Mode",
   "@ambientModeSettingTitle": {
     "description": "Setting that, when on, dims Now Playing to a black screen with small artwork after a while without input; this is Retrofy's own mode, not the phone's Always On Display"
+  },
+  "legalTitle": "Legal",
+  "@legalTitle": {
+    "description": "Settings row and screen with licence notices, privacy policy and terms"
+  },
+  "openSourceLicensesTitle": "Open-Source Licenses",
+  "@openSourceLicensesTitle": {
+    "description": "Legal row that opens the open-source licence notices"
+  },
+  "privacyPolicyTitle": "Privacy Policy",
+  "@privacyPolicyTitle": {
+    "description": "Legal row that opens the privacy policy"
+  },
+  "termsTitle": "Terms & Conditions",
+  "@termsTitle": {
+    "description": "Legal row that opens the terms and conditions"
+  },
+  "sourceCodeTitle": "Source Code",
+  "@sourceCodeTitle": {
+    "description": "Legal row that opens Retrofy's source code repository"
+  },
+  "legalese": "Copyright (c) 2025, Aditya R. This product includes software developed by Aditya R (Classipod). Spotify is a trademark of Spotify AB; Retrofy is not affiliated with Spotify.",
+  "@legalese": {
+    "description": "Legal text shown on the open-source licences page"
   }
 }

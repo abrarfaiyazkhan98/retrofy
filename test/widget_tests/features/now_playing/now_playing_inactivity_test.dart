@@ -22,7 +22,6 @@ import 'package:classipod/features/settings/controller/settings_preferences_cont
 import 'package:classipod/features/settings/models/artwork_glow.dart';
 import 'package:classipod/features/settings/models/click_wheel_sensitivity.dart';
 import 'package:classipod/features/settings/models/click_wheel_size.dart';
-import 'package:classipod/features/settings/models/device_color.dart';
 import 'package:classipod/features/settings/models/settings_preferences_model.dart';
 import 'package:classipod/features/settings/models/volume_mode.dart';
 import 'package:classipod/features/tutorial/controller/tutorial_controller.dart';
@@ -150,9 +149,6 @@ class _AudioService extends AudioPlayerServiceNotifier {
 }
 
 class _SettingsModel extends Fake implements SettingsPreferencesModel {
-  @override
-  DeviceColor get deviceColor => DeviceColor.values.first;
-
   @override
   ClickWheelSize get clickWheelSize => ClickWheelSize.medium;
 

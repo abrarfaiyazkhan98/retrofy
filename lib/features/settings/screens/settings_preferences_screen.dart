@@ -16,13 +16,11 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 enum _SettingsDisplayItems {
-  about,
   shuffle,
   repeat,
   language,
   appTheme,
   coverFlowAppearance,
-  deviceColor,
   clickWheelSize,
   clickWheelSensitivity,
   isTouchScreenEnabled,
@@ -37,12 +35,11 @@ enum _SettingsDisplayItems {
   showAppTutorial,
   librarySettings,
   resetSettings,
-  donate;
+  donate,
+  legal;
 
   String title(BuildContext context) {
     switch (this) {
-      case about:
-        return context.localization.aboutScreenTitle;
       case shuffle:
         return context.localization.shuffleSettingTitle;
       case repeat:
@@ -55,8 +52,6 @@ enum _SettingsDisplayItems {
         return context.localization.themeSettingTitle;
       case isTouchScreenEnabled:
         return context.localization.touchScreenSettingTitle;
-      case deviceColor:
-        return context.localization.deviceColorSettingTitle;
       case clickWheelSize:
         return context.localization.clickWheelSizeSettingTitle;
       case clickWheelSensitivity:
@@ -85,6 +80,8 @@ enum _SettingsDisplayItems {
         return context.localization.resetSettingsTitle;
       case donate:
         return context.localization.donateSettingTitle;
+      case legal:
+        return context.localization.legalTitle;
     }
   }
 }
@@ -111,8 +108,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
   Future<void> _settingAction(_SettingsDisplayItems settingItem) async {
     setState(() => selectedDisplayItem = displayItems.indexOf(settingItem));
     switch (settingItem) {
-      case _SettingsDisplayItems.about:
-        context.goNamed(Routes.about.name);
+      case _SettingsDisplayItems.legal:
+        context.goNamed(Routes.legal.name);
         break;
       case _SettingsDisplayItems.language:
         context.goNamed(Routes.language.name);
@@ -144,9 +141,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
         await ref
             .read(settingsPreferencesControllerProvider.notifier)
             .toggleAppTheme();
-        break;
-      case _SettingsDisplayItems.deviceColor:
-        context.goNamed(Routes.deviceColor.name);
         break;
       case _SettingsDisplayItems.clickWheelSize:
         await ref
@@ -244,8 +238,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     switch (settingsItem) {
       case _SettingsDisplayItems.shuffle:
         return ref.watch(nowPlayingDetailsProvider).shuffleMode.title(context);
-      case _SettingsDisplayItems.deviceColor:
-        return settingsState.deviceColor.title(context);
       case _SettingsDisplayItems.clickWheelSize:
         return settingsState.clickWheelSize.title(context);
       case _SettingsDisplayItems.clickWheelSensitivity:
@@ -281,11 +273,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       case _SettingsDisplayItems.language:
         ref.read(splitScreenControllerProvider.notifier).changeSplitScreenType =
             SplitScreenType.language;
-        break;
-
-      case _SettingsDisplayItems.deviceColor:
-        ref.read(splitScreenControllerProvider.notifier).changeSplitScreenType =
-            SplitScreenType.deviceColor;
         break;
       case _SettingsDisplayItems.appTheme:
         ref.read(splitScreenControllerProvider.notifier).changeSplitScreenType =
