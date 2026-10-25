@@ -1,14 +1,13 @@
 import 'package:classipod/features/settings/models/app_theme.dart';
+import 'package:classipod/features/settings/models/artwork_glow.dart';
 import 'package:classipod/features/settings/models/click_wheel_sensitivity.dart';
 import 'package:classipod/features/settings/models/click_wheel_size.dart';
 import 'package:classipod/features/settings/models/cover_flow_appearance.dart';
-import 'package:classipod/features/settings/models/device_color.dart';
 import 'package:classipod/features/settings/models/repeat_mode.dart';
 import 'package:classipod/features/settings/models/volume_mode.dart';
 
 class SettingsPreferencesModel {
   final String languageLocaleCode;
-  final DeviceColor deviceColor;
   final ClickWheelSize clickWheelSize;
   final ClickWheelSensitivity clickWheelSensitivity;
   final bool isTouchScreenEnabled;
@@ -24,10 +23,11 @@ class SettingsPreferencesModel {
   final bool fetchOnlineMusic;
   final AppTheme appTheme;
   final CoverFlowAppearance coverFlowAppearance;
+  final ArtworkGlowStyle artworkGlow;
+  final AnimationQuality animationQuality;
 
   SettingsPreferencesModel({
     required this.languageLocaleCode,
-    required this.deviceColor,
     required this.clickWheelSize,
     required this.clickWheelSensitivity,
     required this.isTouchScreenEnabled,
@@ -41,11 +41,12 @@ class SettingsPreferencesModel {
     required this.appTheme,
     this.fetchOnlineMusic = false,
     this.coverFlowAppearance = CoverFlowAppearance.original,
+    this.artworkGlow = ArtworkGlowStyle.dynamic,
+    this.animationQuality = AnimationQuality.auto,
   });
 
   SettingsPreferencesModel copyWith({
     String? languageLocaleCode,
-    DeviceColor? deviceColor,
     ClickWheelSize? clickWheelSize,
     ClickWheelSensitivity? clickWheelSensitivity,
     bool? isTouchScreenEnabled,
@@ -59,10 +60,11 @@ class SettingsPreferencesModel {
     bool? fetchOnlineMusic,
     AppTheme? appTheme,
     CoverFlowAppearance? coverFlowAppearance,
+    ArtworkGlowStyle? artworkGlow,
+    AnimationQuality? animationQuality,
   }) {
     return SettingsPreferencesModel(
       languageLocaleCode: languageLocaleCode ?? this.languageLocaleCode,
-      deviceColor: deviceColor ?? this.deviceColor,
       clickWheelSize: clickWheelSize ?? this.clickWheelSize,
       clickWheelSensitivity:
           clickWheelSensitivity ?? this.clickWheelSensitivity,
@@ -77,6 +79,8 @@ class SettingsPreferencesModel {
       appTheme: appTheme ?? this.appTheme,
       coverFlowAppearance: coverFlowAppearance ?? this.coverFlowAppearance,
       fetchOnlineMusic: fetchOnlineMusic ?? this.fetchOnlineMusic,
+      artworkGlow: artworkGlow ?? this.artworkGlow,
+      animationQuality: animationQuality ?? this.animationQuality,
     );
   }
 
@@ -84,7 +88,6 @@ class SettingsPreferencesModel {
   bool operator ==(Object other) {
     return other is SettingsPreferencesModel &&
         other.languageLocaleCode == languageLocaleCode &&
-        other.deviceColor == deviceColor &&
         other.clickWheelSize == clickWheelSize &&
         other.clickWheelSensitivity == clickWheelSensitivity &&
         other.isTouchScreenEnabled == isTouchScreenEnabled &&
@@ -97,13 +100,14 @@ class SettingsPreferencesModel {
         other.ambientMode == ambientMode &&
         other.fetchOnlineMusic == fetchOnlineMusic &&
         other.appTheme == appTheme &&
-        other.coverFlowAppearance == coverFlowAppearance;
+        other.coverFlowAppearance == coverFlowAppearance &&
+        other.artworkGlow == artworkGlow &&
+        other.animationQuality == animationQuality;
   }
 
   @override
   int get hashCode => Object.hash(
     languageLocaleCode,
-    deviceColor,
     clickWheelSize,
     clickWheelSensitivity,
     isTouchScreenEnabled,
@@ -117,5 +121,7 @@ class SettingsPreferencesModel {
     appTheme,
     fetchOnlineMusic,
     coverFlowAppearance,
+    artworkGlow,
+    animationQuality,
   );
 }

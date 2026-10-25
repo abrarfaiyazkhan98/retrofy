@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:classipod/core/extensions/build_context_extensions.dart';
+import 'package:classipod/core/services/audio_player_service.dart';
 import 'package:classipod/core/subsonic/subsonic_controller.dart';
 import 'package:classipod/features/menu/controller/split_screen_controller.dart';
 import 'package:classipod/features/menu/models/split_screen_type.dart';
@@ -109,10 +110,22 @@ class _SplitScreenPlaceholderState extends ConsumerState<SplitScreenPlaceholder>
       splitScreenType = ref.watch(splitScreenControllerProvider);
       if (splitScreenType == SplitScreenType.shuffle) {
         splitScreenWidget = IconPreviewWidget(
-          titleText: context.localization.shuffleSongsMenuTitle,
+          titleText: context.localization.shuffleMyMusicTitle,
           icon: CupertinoIcons.shuffle,
           contentText:
-              "${ref.watch(songsProvider).length} ${context.localization.songsScreenTitle}",
+              ref
+                  .read(audioPlayerServiceProvider.notifier)
+                  .shuffleMyMusicUsesSpotify
+              ? context.localization.spotifyLikedSongs
+              : "${ref.watch(songsProvider).length} ${context.localization.songsScreenTitle}",
+        );
+      } else if (splitScreenType == SplitScreenType.matchYourMood) {
+        splitScreenWidget = IconPreviewWidget(
+          titleText: context.localization.matchYourMoodTitle,
+          icon: CupertinoIcons.waveform,
+          contentText:
+              '${context.localization.moodTitle} · '
+              '${context.localization.tempoTitle}',
         );
       } else if (splitScreenType == SplitScreenType.settings) {
         splitScreenWidget = const SettingsPreviewWidget();
@@ -127,12 +140,6 @@ class _SplitScreenPlaceholderState extends ConsumerState<SplitScreenPlaceholder>
           titleText: context.localization.themeSettingTitle,
           icon: CupertinoIcons.moon_stars,
           contentText: currentSettings.appTheme.title(context),
-        );
-      } else if (splitScreenType == SplitScreenType.deviceColor) {
-        splitScreenWidget = IconPreviewWidget(
-          titleText: context.localization.deviceColorSettingTitle,
-          icon: CupertinoIcons.device_phone_portrait,
-          contentText: currentSettings.deviceColor.title(context),
         );
       } else if (splitScreenType == SplitScreenType.clickWheelSize) {
         splitScreenWidget = IconPreviewWidget(
@@ -274,12 +281,6 @@ class _SplitScreenPlaceholderState extends ConsumerState<SplitScreenPlaceholder>
           titleText: context.localization.resetSettingsTitle,
           icon: CupertinoIcons.refresh_circled,
           contentText: "",
-        );
-      } else if (splitScreenType == SplitScreenType.donate) {
-        splitScreenWidget = IconPreviewWidget(
-          titleText: context.localization.donateSettingTitle,
-          icon: CupertinoIcons.money_dollar_circle,
-          contentText: context.localization.donateSettingDescription,
         );
       } else {
         splitScreenWidget = const AnimatedAlbumArtScroller();

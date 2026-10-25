@@ -18,6 +18,15 @@ import 'package:classipod/features/now_playing/models/now_playing_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 
+/// Artwork of the track Now Playing shows, from any source (library,
+/// Subsonic or Spotify), for previews outside the Now Playing screen.
+final nowPlayingArtworkPathProvider = Provider<String?>((ref) {
+  final current = ref.watch(
+    nowPlayingDetailsProvider.select((value) => value.currentMetadata),
+  );
+  return ref.watch(songAlbumArtworkProvider(current));
+});
+
 final nowPlayingDetailsProvider =
     NotifierProvider<NowPlayingDetailsNotifier, NowPlayingModel>(
       NowPlayingDetailsNotifier.new,

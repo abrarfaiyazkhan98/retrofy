@@ -4,14 +4,18 @@ import 'package:audio_service/audio_service.dart';
 import 'package:classipod/core/constants/keys.dart';
 import 'package:classipod/core/models/music_metadata.dart';
 import 'package:classipod/core/models/playback_shuffle_mode.dart';
+import 'package:classipod/core/models/shared_preference_keys.dart';
 import 'package:classipod/core/providers/filtered_audio_files_provider.dart';
+import 'package:classipod/core/providers/shared_preferences_with_cache_provider.dart';
 import 'package:classipod/core/services/playback/library_audio_handler.dart';
 import 'package:classipod/core/services/playback/playback_backend.dart';
 import 'package:classipod/core/services/playback/playback_session.dart';
 import 'package:classipod/core/spotify/spotify_auth.dart';
+import 'package:classipod/core/spotify/spotify_auth_controller.dart';
 import 'package:classipod/core/spotify/spotify_playback_controller.dart';
 import 'package:classipod/core/spotify/spotify_remote.dart';
 import 'package:classipod/core/subsonic/subsonic_controller.dart';
+import 'package:classipod/features/menu/providers/music_source_provider.dart';
 import 'package:classipod/features/music/album/models/album_model.dart';
 import 'package:classipod/features/music/playlist/models/playlist_model.dart';
 import 'package:classipod/features/now_playing/models/now_playing_model.dart';
@@ -99,6 +103,7 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
   /// The Spotify queue is cleared because the local engine cannot play it.
   Future<void> _useLibrary() async {
     if (!_spotifyActive) return;
+    unawaited(_rememberSpotifySession(active: false));
     ref.read(playbackBackendProvider.notifier).backend =
         PlaybackBackend.library;
     ref
@@ -110,6 +115,90 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
     try {
       await _spotify.pause();
     } catch (_) {}
+  }
+
+  /// Whether Spotify was what Retrofy played last, so a restarted Retrofy
+  /// can show Spotify's playback again instead of an empty Now Playing.
+  Future<void> _rememberSpotifySession({required bool active}) async {
+    await ref
+        .read(sharedPreferencesWithCacheProvider)
+        .value
+        ?.setBool(SharedPreferencesKeys.spotifySessionActive.name, active);
+  }
+
+  /// After Retrofy restarts, reconnects Now Playing to the Spotify app when
+  /// Spotify was the last thing played through Retrofy. Spotify's own player
+  /// state then describes the track; nothing starts or stops playing.
+  Future<void> resumeSpotifySession() async {
+    final active = ref
+        .read(sharedPreferencesWithCacheProvider)
+        .value
+        ?.getBool(SharedPreferencesKeys.spotifySessionActive.name);
+    if (active != true || _spotifyActive) return;
+    try {
+      final auth = await ref.read(spotifyAuthControllerProvider.future);
+      if (!auth.signedIn) return;
+    } catch (_) {
+      return;
+    }
+    ref.read(playbackBackendProvider.notifier).backend =
+        PlaybackBackend.spotify;
+    ref
+        .read(nowPlayingDetailsProvider.notifier)
+        .setSpotifyQueue(
+          nowPlayingType: NowPlayingType.songs,
+          tracks: const [],
+        );
+    try {
+      await _spotify.ensureConnected();
+    } catch (error) {
+      // The Spotify app may be missing or signed out; Now Playing shows
+      // the reason the next time Spotify is used.
+      debugPrint('Spotify session not resumed: $error');
+    }
+  }
+
+  /// Starts [track], inside [contextUri] when given so Spotify continues
+  /// through it, then checks that Spotify really plays that track. A context
+  /// that starts a different track is replaced by the chosen track on its
+  /// own; if Spotify still plays something else the caller gets
+  /// `wrong_track` rather than a silent substitution.
+  Future<void> _playSpotifyTrack(
+    MusicMetadata track,
+    String? contextUri, {
+    List<MusicMetadata> listed = const [],
+  }) async {
+    final uri = track.songId!;
+    if (contextUri != null) {
+      try {
+        final mark = _spotify.requestMark;
+        await _spotify.playContext(contextUri, track.originalSongIndex);
+        final reported = await _spotify.confirmTrack(uri, mark: mark);
+        if (reported == null || reported == uri) return;
+        final shown = listed.indexWhere((t) => t.songId == reported);
+        debugPrint(
+          'Spotify started $reported instead of $uri at '
+          '${track.originalSongIndex} of $contextUri '
+          '(listed at position '
+          '${shown < 0 ? 'none' : listed[shown].originalSongIndex}, '
+          'shuffling ${_spotify.state.player?.isShuffling}); '
+          'playing it directly',
+        );
+      } on SpotifyException catch (error) {
+        // The Spotify app rejected the context itself (e.g. an unsupported
+        // collection URI): start the chosen track on its own instead.
+        if (error.code != 'remote_service' && error.code != 'unknown') {
+          rethrow;
+        }
+      }
+    }
+    final mark = _spotify.requestMark;
+    await _spotify.playUri(uri);
+    final reported = await _spotify.confirmTrack(uri, mark: mark);
+    if (reported != null && reported != uri) {
+      debugPrint('Spotify plays $reported after requesting $uri');
+      throw const SpotifyException('wrong_track');
+    }
   }
 
   /// Plays Spotify tracks in the Spotify app and shows them in Now Playing.
@@ -132,22 +221,8 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
       if (shuffle != null) await _spotify.setShuffle(shuffle);
       if (index == null) {
         await _spotify.playUri(contextUri!);
-      } else if (contextUri == null) {
-        await _spotify.playUri(tracks[index].songId!);
       } else {
-        try {
-          await _spotify.playContext(
-            contextUri,
-            tracks[index].originalSongIndex,
-          );
-        } on SpotifyException catch (error) {
-          // The Spotify app rejected the context itself (e.g. an unsupported
-          // collection URI): start the chosen track on its own instead.
-          if (error.code != 'remote_service' && error.code != 'unknown') {
-            rethrow;
-          }
-          await _spotify.playUri(tracks[index].songId!);
-        }
+        await _playSpotifyTrack(tracks[index], contextUri, listed: tracks);
       }
       if (!_spotifyActive) {
         // Stop rather than pause: a paused session keeps Retrofy's media
@@ -164,9 +239,20 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
             tracks: tracks,
             index: index,
           );
+      unawaited(_rememberSpotifySession(active: true));
     });
     final error = state.error;
     if (error != null) Error.throwWithStackTrace(error, state.stackTrace!);
+  }
+
+  /// Plays [tracks] in this order in the Spotify app: the first starts and
+  /// the rest join Spotify's queue. Needs Premium (track choice).
+  Future<void> playSpotifyQueue(List<MusicMetadata> tracks) async {
+    if (tracks.isEmpty) return;
+    await playSpotify(tracks: tracks, index: 0);
+    for (final track in tracks.skip(1)) {
+      await _spotify.queue(track.songId!);
+    }
   }
 
   @override
@@ -346,6 +432,52 @@ class AudioPlayerServiceNotifier extends AsyncNotifier<void> {
           .read(settingsPreferencesControllerProvider.notifier)
           .setInitialRepeatMode();
     });
+  }
+
+  /// Whether Shuffle My Music uses Spotify: when Spotify is the Music
+  /// source, or when there is no local library to shuffle.
+  bool get shuffleMyMusicUsesSpotify {
+    final signedIn =
+        ref.read(spotifyAuthControllerProvider).value?.signedIn ?? false;
+    if (!signedIn) return false;
+    final library = ref.read(filteredAudioFilesProvider).value ?? const [];
+    return ref.read(musicSourceProvider) == MusicSource.spotify ||
+        library.isEmpty;
+  }
+
+  /// Shuffle My Music: the user's Spotify Liked Songs, or every library
+  /// song. Throws [SpotifyException] when Spotify cannot start it.
+  Future<void> shuffleMyMusic() => shuffleMyMusicUsesSpotify
+      ? shuffleSpotifyLikedSongs()
+      : shuffleAllSongs();
+
+  /// Plays the signed-in user's Liked Songs with Spotify's own shuffle.
+  /// Spotify owns that queue, so Retrofy never builds a competing one; it
+  /// only mirrors the tracks the Spotify app reports.
+  Future<void> shuffleSpotifyLikedSongs() async {
+    final auth = await ref.read(spotifyAuthControllerProvider.future);
+    if (!auth.signedIn) throw const SpotifyException('signin');
+    final api = ref.read(spotifyApiProvider);
+    if (await api.savedTrackCount() == 0) {
+      throw const SpotifyException('no_liked_songs');
+    }
+    final profile = auth.profile ?? await api.me();
+    final mark = _spotify.requestMark;
+    await playSpotify(
+      tracks: const [],
+      contextUri: 'spotify:user:${profile.id}:collection',
+      shuffle: true,
+    );
+    // When Liked Songs is already playing, Spotify keeps the current track;
+    // a shuffle should start somewhere new, so move on to the next one.
+    final before = mark.before;
+    if (before == null) return;
+    final settled = await _spotify.confirmTrack(
+      before,
+      mark: mark,
+      timeout: const Duration(seconds: 2),
+    );
+    if (settled == before) await _spotify.skipNext();
   }
 
   Future<void> setLoopMode(LoopMode loopMode) async {

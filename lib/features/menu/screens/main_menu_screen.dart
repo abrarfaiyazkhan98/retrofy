@@ -8,6 +8,7 @@ import 'package:classipod/core/widgets/display_list_tile.dart';
 import 'package:classipod/features/custom_screen_elements/custom_screen.dart';
 import 'package:classipod/features/menu/controller/split_screen_controller.dart';
 import 'package:classipod/features/menu/models/split_screen_type.dart';
+import 'package:classipod/features/spotify/widgets/spotify_status_view.dart';
 import 'package:classipod/features/tutorial/controller/tutorial_controller.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,21 +16,21 @@ import 'package:go_router/go_router.dart';
 
 enum _MainMenuDisplayItems {
   music,
-  spotify,
   settings,
   shuffleSongs,
+  matchYourMood,
   nowPlaying;
 
   String title(BuildContext context) {
     switch (this) {
       case music:
         return context.localization.musicMenuScreenTitle;
-      case spotify:
-        return context.localization.spotifyTitle;
       case settings:
         return context.localization.settingsScreenTitle;
       case shuffleSongs:
-        return context.localization.shuffleSongsMenuTitle;
+        return context.localization.shuffleMyMusicTitle;
+      case matchYourMood:
+        return context.localization.matchYourMoodTitle;
       case nowPlaying:
         return context.localization.nowPlayingScreenTitle;
     }
@@ -68,17 +69,27 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen>
       case _MainMenuDisplayItems.music:
         context.goNamed(Routes.musicMenu.name);
         break;
-      case _MainMenuDisplayItems.spotify:
-        context.goNamed(Routes.spotify.name);
-        break;
       case _MainMenuDisplayItems.nowPlaying:
         await _navigateToNowPlayingScreen();
         break;
       case _MainMenuDisplayItems.settings:
         context.goNamed(Routes.settings.name);
         break;
+      case _MainMenuDisplayItems.matchYourMood:
+        unawaited(ref.read(splitScreenViewControllerProvider).closeSplitView());
+        await context.pushNamed(Routes.matchMood.name);
+        if (!mounted) return;
+        unawaited(ref.read(splitScreenViewControllerProvider).openSplitView());
+        break;
       case _MainMenuDisplayItems.shuffleSongs:
-        await ref.read(audioPlayerServiceProvider.notifier).shuffleAllSongs();
+        try {
+          await ref.read(audioPlayerServiceProvider.notifier).shuffleMyMusic();
+        } catch (error) {
+          // Nothing is claimed to play: Now Playing only opens once the
+          // player has accepted the shuffle.
+          if (mounted) await _showShuffleError(error);
+          return;
+        }
         await _navigateToNowPlayingScreen();
         break;
     }
@@ -94,11 +105,25 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen>
     unawaited(ref.read(splitScreenViewControllerProvider).openSplitView());
   }
 
+  Future<void> _showShuffleError(Object error) => showCupertinoDialog<void>(
+    context: context,
+    barrierDismissible: true,
+    builder: (dialogContext) => CupertinoAlertDialog(
+      title: Text(context.localization.shuffleMyMusicTitle),
+      content: Text(spotifyErrorText(context, error)),
+      actions: [
+        CupertinoDialogAction(
+          onPressed: () => Navigator.of(dialogContext).pop(),
+          child: Text(context.localization.okButtonText),
+        ),
+      ],
+    ),
+  );
+
   void _changeSplitScreenType() {
     if (!mounted || context.router.locationNamed != routeName) return;
     switch (displayItems[selectedDisplayItem]) {
       case _MainMenuDisplayItems.music:
-      case _MainMenuDisplayItems.spotify:
         ref.read(splitScreenControllerProvider.notifier).changeSplitScreenType =
             SplitScreenType.albumArt;
         break;
@@ -113,6 +138,10 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen>
       case _MainMenuDisplayItems.nowPlaying:
         ref.read(splitScreenControllerProvider.notifier).changeSplitScreenType =
             SplitScreenType.nowPlaying;
+        break;
+      case _MainMenuDisplayItems.matchYourMood:
+        ref.read(splitScreenControllerProvider.notifier).changeSplitScreenType =
+            SplitScreenType.matchYourMood;
         break;
     }
   }

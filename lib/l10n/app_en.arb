@@ -92,10 +92,6 @@
   "@settingsScreenTitle": {
     "description": "The title of the settings screen"
   },
-  "aboutScreenTitle": "About",
-  "@aboutScreenTitle": {
-    "description": "The title of the about screen"
-  },
   "coverFlowScreenTitle": "Cover Flow",
   "@coverFlowScreenTitle": {
     "description": "The title of the cover flow screen"
@@ -150,10 +146,6 @@
   "@genreSongsScreenTitle": {
     "description": "The title of the genre songs screen"
   },
-  "deviceColorSettingTitle": "Device Color",
-  "@deviceColorSettingTitle": {
-    "description": "The title of the device color setting"
-  },
   "touchScreenSettingTitle": "Touch Screen Enabled",
   "@touchScreenSettingTitle": {
     "description": "The title of the touch screen setting"
@@ -189,22 +181,6 @@
   "showAppTutorialSettingTitle": "Show Tutorial",
   "@showAppTutorialSettingTitle": {
     "description": "The title of the show app tutorial setting"
-  },
-  "donateSettingTitle": "Donate",
-  "@donateSettingTitle": {
-    "description": "The title of the donate setting"
-  },
-  "donateSettingDescription": "If you like this app, please consider donating.",
-  "@donateSettingDescription": {
-    "description": "The description of the donate setting"
-  },
-  "versionAboutScreenTitle": "Version",
-  "@versionAboutScreenTitle": {
-    "description": "The title of the version tile in the about screen"
-  },
-  "madeWithLoveTitle": "Made with ❤️ by",
-  "@madeWithLoveTitle": {
-    "description": "The title of the made with love section in the about screen"
   },
   "noMusicFilesFound": "No Music",
   "@noMusicFilesFound": {
@@ -286,18 +262,6 @@
   "@themeSettingTitle": {
     "description": "Title for the theme selection setting"
   },
-  "silverDeviceColor": "Silver",
-  "@silverDeviceColor": {
-    "description": "The name of the silver device color"
-  },
-  "blackDeviceColor": "Black",
-  "@blackDeviceColor": {
-    "description": "The name of the black device color"
-  },
-  "oledBlackDeviceColor": "OLED Black",
-  "@oledBlackDeviceColor": {
-    "description": "The name of the OLED black device color"
-  },
   "lightThemeTitle": "Light",
   "@lightThemeTitle": {
     "description": "Label for the light theme option"
@@ -305,46 +269,6 @@
   "darkThemeTitle": "Dark",
   "@darkThemeTitle": {
     "description": "Label for the dark theme option"
-  },
-  "orangeDeviceColor": "Orange",
-  "@orangeDeviceColor": {
-    "description": "The name of the orange device color"
-  },
-  "yellowDeviceColor": "Yellow",
-  "@yellowDeviceColor": {
-    "description": "The name of the yellow device color"
-  },
-  "goldDeviceColor": "Gold",
-  "@goldDeviceColor": {
-    "description": "The name of the gold device color"
-  },
-  "purpleDeviceColor": "Purple",
-  "@purpleDeviceColor": {
-    "description": "The name of the purple device color"
-  },
-  "pinkDeviceColor": "Pink",
-  "@pinkDeviceColor": {
-    "description": "The name of the pink device color"
-  },
-  "brownDeviceColor": "Brown",
-  "@brownDeviceColor": {
-    "description": "The name of the brown device color"
-  },
-  "redDeviceColor": "Red",
-  "@redDeviceColor": {
-    "description": "The name of the red device color"
-  },
-  "blueDeviceColor": "Blue",
-  "@blueDeviceColor": {
-    "description": "The name of the blue device color"
-  },
-  "limeDeviceColor": "Lime",
-  "@limeDeviceColor": {
-    "description": "The name of the lime device color"
-  },
-  "greenDeviceColor": "Green",
-  "@greenDeviceColor": {
-    "description": "The name of the green device color"
   },
   "resetSettingsTitle": "Reset Settings",
   "@resetSettingsTitle": {
@@ -803,6 +727,78 @@
   "@spotifyErrorUnavailable": {
     "description": "Shown when Spotify does not allow this content to be listed"
   },
+  "spotifyErrorWrongTrack": "Spotify played a different song",
+  "@spotifyErrorWrongTrack": {
+    "description": "Shown when Spotify starts another song than the one chosen, even after Retrofy asked for the chosen song directly"
+  },
+  "artworkGlowSettingTitle": "Artwork Glow",
+  "@artworkGlowSettingTitle": {
+    "description": "Settings row for the coloured glow drawn from album artwork"
+  },
+  "artworkGlowOffTitle": "Off",
+  "@artworkGlowOffTitle": {
+    "description": "Artwork Glow setting value: no glow"
+  },
+  "artworkGlowSubtleTitle": "Subtle",
+  "@artworkGlowSubtleTitle": {
+    "description": "Artwork Glow setting value: a gentle glow"
+  },
+  "artworkGlowDynamicTitle": "Dynamic",
+  "@artworkGlowDynamicTitle": {
+    "description": "Artwork Glow setting value: the full animated glow"
+  },
+  "animationQualitySettingTitle": "Animation Quality",
+  "@animationQualitySettingTitle": {
+    "description": "Settings row for how much animation work the artwork glow does"
+  },
+  "animationQualityAutoTitle": "Auto",
+  "@animationQualityAutoTitle": {
+    "description": "Animation Quality value chosen from the device and Battery Saver"
+  },
+  "animationQualityHighTitle": "High",
+  "@animationQualityHighTitle": {
+    "description": "Animation Quality value: full animation"
+  },
+  "animationQualityBalancedTitle": "Balanced",
+  "@animationQualityBalancedTitle": {
+    "description": "Animation Quality value: lighter animation"
+  },
+  "animationQualityBatterySaverTitle": "Battery Saver",
+  "@animationQualityBatterySaverTitle": {
+    "description": "Animation Quality value: still glow, no animation"
+  },
+  "ambientCloseLabel": "Close Ambient Mode",
+  "@ambientCloseLabel": {
+    "description": "Screen reader label for the button that leaves Ambient Mode"
+  },
+  "ambientLyricsLabel": "Lyrics",
+  "@ambientLyricsLabel": {
+    "description": "Screen reader label for the Ambient Mode button that shows or hides lyrics"
+  },
+  "ambientFavouriteLabel": "Favourite",
+  "@ambientFavouriteLabel": {
+    "description": "Screen reader label for the Ambient Mode star that marks the song as a favourite"
+  },
+  "ambientPreviousLabel": "Previous",
+  "@ambientPreviousLabel": {
+    "description": "Screen reader label for the previous track button"
+  },
+  "ambientNextLabel": "Next",
+  "@ambientNextLabel": {
+    "description": "Screen reader label for the next track button"
+  },
+  "ambientPlayLabel": "Play",
+  "@ambientPlayLabel": {
+    "description": "Screen reader label for the play button"
+  },
+  "ambientPauseLabel": "Pause",
+  "@ambientPauseLabel": {
+    "description": "Screen reader label for the pause button"
+  },
+  "musicSourceLibrary": "Library",
+  "@musicSourceLibrary": {
+    "description": "Music menu row that switches the list below to the music on this device and Subsonic"
+  },
   "spotifyErrorGeneric": "Spotify request failed",
   "@spotifyErrorGeneric": {
     "description": "Shown for any other Spotify error"
@@ -843,5 +839,190 @@
   "ambientModeSettingTitle": "Ambient Mode",
   "@ambientModeSettingTitle": {
     "description": "Setting that, when on, dims Now Playing to a black screen with small artwork after a while without input; this is Retrofy's own mode, not the phone's Always On Display"
+  },
+  "legalTitle": "Legal",
+  "@legalTitle": {
+    "description": "Settings row and screen with licence notices, privacy policy and terms"
+  },
+  "openSourceLicensesTitle": "Open-Source Licenses",
+  "@openSourceLicensesTitle": {
+    "description": "Legal row that opens the open-source licence notices"
+  },
+  "privacyPolicyTitle": "Privacy Policy",
+  "@privacyPolicyTitle": {
+    "description": "Legal row that opens the privacy policy"
+  },
+  "termsTitle": "Terms & Conditions",
+  "@termsTitle": {
+    "description": "Legal row that opens the terms and conditions"
+  },
+  "sourceCodeTitle": "Source Code",
+  "@sourceCodeTitle": {
+    "description": "Legal row that opens Retrofy's source code repository"
+  },
+  "legalese": "Copyright (c) 2025, Aditya R. This product includes software developed by Aditya R (Classipod). Spotify is a trademark of Spotify AB; Retrofy is not affiliated with Spotify.",
+  "@legalese": {
+    "description": "Legal text shown on the open-source licences page"
+  },
+  "okButtonText": "OK",
+  "@okButtonText": {
+    "description": "Button that dismisses a message"
+  },
+  "goToArtist": "Go to Artist",
+  "@goToArtist": {
+    "description": "Now Playing action that opens the playing artist's Spotify page"
+  },
+  "artistUnavailable": "The artist's page is unavailable for this track.",
+  "@artistUnavailable": {
+    "description": "Shown when Go to Artist cannot find or open the artist"
+  },
+  "liveLyricsLabel": "LIVE LYRICS",
+  "@liveLyricsLabel": {
+    "description": "Label above lyrics that follow the song"
+  },
+  "lyricsLabel": "LYRICS",
+  "@lyricsLabel": {
+    "description": "Label above lyrics without timing"
+  },
+  "lyricsUnavailable": "Lyrics unavailable for this track.",
+  "@lyricsUnavailable": {
+    "description": "Shown in Now Playing when no lyrics exist for the track"
+  },
+  "lyricsLoading": "Looking for lyrics…",
+  "@lyricsLoading": {
+    "description": "Shown in Now Playing while lyrics load"
+  },
+  "shuffleMyMusicTitle": "Shuffle My Music",
+  "@shuffleMyMusicTitle": {
+    "description": "Main menu item that shuffles the user's music (Spotify Liked Songs or the library)"
+  },
+  "spotifyErrorNoLikedSongs": "Your Liked Songs on Spotify is empty.",
+  "@spotifyErrorNoLikedSongs": {
+    "description": "Shown when Shuffle My Music finds no Liked Songs"
+  },
+  "matchYourMoodTitle": "Match Your Mood",
+  "@matchYourMoodTitle": {
+    "description": "Main menu feature that builds a listening session from a mood or tempo"
+  },
+  "moodTitle": "Mood",
+  "@moodTitle": {
+    "description": "Match Your Mood row for choosing a mood"
+  },
+  "tempoTitle": "Tempo",
+  "@tempoTitle": {
+    "description": "Match Your Mood row for choosing a tempo"
+  },
+  "moodHappy": "Happy",
+  "@moodHappy": {
+    "description": "Mood"
+  },
+  "moodChill": "Chill",
+  "@moodChill": {
+    "description": "Mood"
+  },
+  "moodEnergetic": "Energetic",
+  "@moodEnergetic": {
+    "description": "Mood"
+  },
+  "moodFocus": "Focus",
+  "@moodFocus": {
+    "description": "Mood"
+  },
+  "moodSad": "Sad",
+  "@moodSad": {
+    "description": "Mood"
+  },
+  "moodRomantic": "Romantic",
+  "@moodRomantic": {
+    "description": "Mood"
+  },
+  "moodWorkout": "Workout",
+  "@moodWorkout": {
+    "description": "Mood"
+  },
+  "moodNightDrive": "Night Drive",
+  "@moodNightDrive": {
+    "description": "Mood"
+  },
+  "tempoSlow": "Slow",
+  "@tempoSlow": {
+    "description": "Tempo preset"
+  },
+  "tempoRelaxed": "Relaxed",
+  "@tempoRelaxed": {
+    "description": "Tempo preset"
+  },
+  "tempoModerate": "Moderate",
+  "@tempoModerate": {
+    "description": "Tempo preset"
+  },
+  "tempoUpbeat": "Upbeat",
+  "@tempoUpbeat": {
+    "description": "Tempo preset"
+  },
+  "tempoHighEnergy": "High Energy",
+  "@tempoHighEnergy": {
+    "description": "Tempo preset"
+  },
+  "tempoIntense": "Intense",
+  "@tempoIntense": {
+    "description": "Tempo preset"
+  },
+  "customBpmTitle": "Custom BPM",
+  "@customBpmTitle": {
+    "description": "Tempo row that lets the user set a BPM with the wheel"
+  },
+  "customBpmHint": "Turn the wheel to set the tempo. Press the centre button to continue.",
+  "@customBpmHint": {
+    "description": "Instructions on the custom BPM screen"
+  },
+  "moodFinding": "Finding music…",
+  "@moodFinding": {
+    "description": "Shown while Match Your Mood builds a session"
+  },
+  "moodStart": "Start Session",
+  "@moodStart": {
+    "description": "Row that starts the Match Your Mood session"
+  },
+  "moodShuffleLikedInstead": "Shuffle Liked Songs Instead",
+  "@moodShuffleLikedInstead": {
+    "description": "Fallback offered when a tempo cannot be matched"
+  },
+  "moodBasisAudioFeatures": "Matched by measured tempo, energy and mood data.",
+  "@moodBasisAudioFeatures": {
+    "description": "Explains how tracks were chosen"
+  },
+  "moodBasisPlaylist": "From your playlist “{name}”, chosen by its name.",
+  "@moodBasisPlaylist": {
+    "description": "Explains how tracks were chosen",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "moodBasisGenre": "Matched by the genre tags in your library.",
+  "@moodBasisGenre": {
+    "description": "Explains how tracks were chosen"
+  },
+  "moodBasisFallbackLiked": "No playlist name matched this mood, so this shuffles your Liked Songs.",
+  "@moodBasisFallbackLiked": {
+    "description": "Explains the fallback"
+  },
+  "moodBasisFallbackLibrary": "No genre tag matched this mood, so this shuffles your library.",
+  "@moodBasisFallbackLibrary": {
+    "description": "Explains the fallback"
+  },
+  "moodBasisNoTempo": "Tempo (BPM) data isn’t available for your music, so Retrofy can’t match a tempo.",
+  "@moodBasisNoTempo": {
+    "description": "Explains that tempo matching is unavailable"
+  },
+  "moodPreviewUnavailable": "Spotify doesn’t share this playlist’s songs with Retrofy, but it still plays.",
+  "@moodPreviewUnavailable": {
+    "description": "Shown when a session's playlist cannot be listed"
+  },
+  "moodNothingToPlay": "Nothing to play for this choice.",
+  "@moodNothingToPlay": {
+    "description": "Shown when a session has no tracks"
   }
 }

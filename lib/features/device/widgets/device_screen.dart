@@ -1,4 +1,3 @@
-import 'package:classipod/core/constants/constants.dart';
 import 'package:classipod/core/extensions/build_context_extensions.dart';
 import 'package:classipod/features/settings/controller/settings_preferences_controller.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
@@ -7,7 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 class DeviceScreen extends ConsumerWidget {
   final Widget child;
 
-  const DeviceScreen({super.key, required this.child});
+  /// Outer height, including the 5 px border above and below.
+  final double height;
+
+  const DeviceScreen({super.key, required this.height, required this.child});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -17,12 +19,10 @@ class DeviceScreen extends ConsumerWidget {
       ),
     );
 
-    final size = MediaQuery.sizeOf(context);
-
     return AbsorbPointer(
       absorbing: !isTouchScreenEnabled,
       child: Container(
-        height: Constants.screenHeight + 10,
+        height: height,
         width: double.infinity,
         decoration: BoxDecoration(
           color: context.appDeviceScreenBackgroundColor,
@@ -32,11 +32,15 @@ class DeviceScreen extends ConsumerWidget {
             width: 5,
           ),
         ),
-        child: MediaQuery(
-          data: MediaQuery.of(
-            context,
-          ).copyWith(size: Size(size.width - 40 - 10, Constants.screenHeight)),
-          child: child,
+        // Screens size themselves from the display, not the window: the
+        // device is capped in width and shares the window in split screen.
+        child: LayoutBuilder(
+          builder: (context, constraints) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(size: Size(constraints.maxWidth, constraints.maxHeight)),
+            child: child,
+          ),
         ),
       ),
     );

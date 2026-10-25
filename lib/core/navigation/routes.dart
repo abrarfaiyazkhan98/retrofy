@@ -9,6 +9,8 @@ import 'package:classipod/features/device/widgets/device_frame.dart';
 import 'package:classipod/features/menu/screens/main_menu_screen.dart';
 import 'package:classipod/features/menu/screens/music_menu_screen.dart';
 import 'package:classipod/features/menu/screens/split_screen_placeholder.dart';
+import 'package:classipod/features/mood/models/mood_selection.dart';
+import 'package:classipod/features/mood/screens/match_mood_screens.dart';
 import 'package:classipod/features/music/album/models/album_model.dart';
 import 'package:classipod/features/music/album/screens/album_more_options_modal.dart';
 import 'package:classipod/features/music/album/screens/album_selection_screen.dart';
@@ -27,15 +29,16 @@ import 'package:classipod/features/music/search/screens/search_more_options_moda
 import 'package:classipod/features/music/search/screens/search_screen.dart';
 import 'package:classipod/features/music/songs/screens/songs_more_options_modal.dart';
 import 'package:classipod/features/music/songs/screens/songs_screen.dart';
+import 'package:classipod/features/now_playing/artist/artist_choice_screen.dart';
+import 'package:classipod/features/now_playing/artist/go_to_artist.dart';
 import 'package:classipod/features/now_playing/screen/now_playing_more_options_screen.dart';
 import 'package:classipod/features/now_playing/screen/now_playing_screen.dart';
 import 'package:classipod/features/now_playing/widgets/now_playing_idle_navigation.dart';
 import 'package:classipod/features/settings/controller/exclude_directories_controller.dart';
 import 'package:classipod/features/settings/controller/settings_preferences_controller.dart';
-import 'package:classipod/features/settings/screens/about_screen.dart';
-import 'package:classipod/features/settings/screens/device_color_selection_screen.dart';
 import 'package:classipod/features/settings/screens/exclude_directories_screen.dart';
 import 'package:classipod/features/settings/screens/language_selection_screen.dart';
+import 'package:classipod/features/settings/screens/legal_screen.dart';
 import 'package:classipod/features/settings/screens/library_settings_screen.dart';
 import 'package:classipod/features/settings/screens/missing_tracks_screen.dart';
 import 'package:classipod/features/settings/screens/settings_preferences_screen.dart';
@@ -57,13 +60,18 @@ enum Routes {
   menu,
   settings,
   librarySettings,
-  about,
+  legal,
   language,
-  deviceColor,
   excludeDirectories,
   missingTracks,
   nowPlaying,
   nowPlayingMoreOptions,
+  artistChoice,
+  matchMood,
+  moodList,
+  tempoList,
+  customBpm,
+  moodPreview,
   sleepTimer,
   musicMenu,
   coverFlow,
@@ -106,12 +114,10 @@ enum Routes {
         return context.localization.settingsScreenTitle;
       case librarySettings:
         return context.localization.librarySettingsScreenTitle;
-      case about:
-        return context.localization.aboutScreenTitle;
+      case legal:
+        return context.localization.legalTitle;
       case language:
         return context.localization.languageScreenTitle;
-      case deviceColor:
-        return context.localization.deviceColorSettingTitle;
       case missingTracks:
         return context.localization.missingTracksTitle;
       case excludeDirectories:
@@ -120,6 +126,17 @@ enum Routes {
         return context.localization.nowPlayingScreenTitle;
       case nowPlayingMoreOptions:
         return context.localization.nowPlayingScreenTitle;
+      case artistChoice:
+        return context.localization.goToArtist;
+      case matchMood:
+        return context.localization.matchYourMoodTitle;
+      case moodList:
+        return context.localization.moodTitle;
+      case tempoList:
+      case customBpm:
+        return context.localization.tempoTitle;
+      case moodPreview:
+        return context.localization.matchYourMoodTitle;
       case sleepTimer:
         return context.localization.sleepTimerTitle;
       case musicMenu:
@@ -247,6 +264,57 @@ final routerProvider = Provider(
                     const CupertinoPage(child: MainMenuScreen()),
                 routes: [
                   GoRoute(
+                    path: Routes.matchMood.name,
+                    name: Routes.matchMood.name,
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (context, state) => CupertinoPage(
+                      key: state.pageKey,
+                      child: const ScreenPageContent(child: MatchMoodScreen()),
+                    ),
+                  ),
+                  GoRoute(
+                    path: Routes.moodList.name,
+                    name: Routes.moodList.name,
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (context, state) => CupertinoPage(
+                      key: state.pageKey,
+                      child: const ScreenPageContent(child: MoodListScreen()),
+                    ),
+                  ),
+                  GoRoute(
+                    path: Routes.tempoList.name,
+                    name: Routes.tempoList.name,
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (context, state) => CupertinoPage(
+                      key: state.pageKey,
+                      child: const ScreenPageContent(child: TempoListScreen()),
+                    ),
+                  ),
+                  GoRoute(
+                    path: Routes.customBpm.name,
+                    name: Routes.customBpm.name,
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (context, state) => CupertinoPage(
+                      key: state.pageKey,
+                      child: const ScreenPageContent(child: CustomBpmScreen()),
+                    ),
+                  ),
+                  GoRoute(
+                    path: Routes.moodPreview.name,
+                    name: Routes.moodPreview.name,
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (context, state) => CupertinoPage(
+                      key: state.pageKey,
+                      child: ScreenPageContent(
+                        child: state.extra is MoodSelection
+                            ? MoodPreviewScreen(
+                                selection: state.extra! as MoodSelection,
+                              )
+                            : const PageNotFoundScreen(),
+                      ),
+                    ),
+                  ),
+                  GoRoute(
                     path: Routes.settings.name,
                     name: Routes.settings.name,
                     parentNavigatorKey: menuNavigatorKey,
@@ -254,12 +322,11 @@ final routerProvider = Provider(
                         const CupertinoPage(child: SettingsScreen()),
                     routes: [
                       GoRoute(
-                        path: Routes.about.name,
-                        name: Routes.about.name,
-                        parentNavigatorKey: rootNavigatorKey,
-                        pageBuilder: (context, state) => const CupertinoPage(
-                          child: ScreenPageContent(child: AboutScreen()),
-                        ),
+                        path: Routes.legal.name,
+                        name: Routes.legal.name,
+                        parentNavigatorKey: menuNavigatorKey,
+                        pageBuilder: (context, state) =>
+                            const CupertinoPage(child: LegalScreen()),
                       ),
                       GoRoute(
                         path: Routes.language.name,
@@ -267,14 +334,6 @@ final routerProvider = Provider(
                         parentNavigatorKey: menuNavigatorKey,
                         pageBuilder: (context, state) => const CupertinoPage(
                           child: LanguageSelectionScreen(),
-                        ),
-                      ),
-                      GoRoute(
-                        path: Routes.deviceColor.name,
-                        name: Routes.deviceColor.name,
-                        parentNavigatorKey: menuNavigatorKey,
-                        pageBuilder: (context, state) => const CupertinoPage(
-                          child: DeviceColorSelectionScreen(),
                         ),
                       ),
                       GoRoute(
@@ -363,6 +422,19 @@ final routerProvider = Provider(
                           key: state.pageKey,
                           child: const ScreenPageContent(
                             child: NowPlayingMoreOptionsScreen(),
+                          ),
+                        ),
+                      ),
+                      GoRoute(
+                        path: Routes.artistChoice.name,
+                        name: Routes.artistChoice.name,
+                        parentNavigatorKey: rootNavigatorKey,
+                        pageBuilder: (context, state) => CupertinoPage(
+                          key: state.pageKey,
+                          child: ScreenPageContent(
+                            child: ArtistChoiceScreen(
+                              artists: state.extra! as List<ArtistLink>,
+                            ),
                           ),
                         ),
                       ),

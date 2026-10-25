@@ -1,4 +1,3 @@
-import 'package:classipod/core/constants/constants.dart';
 import 'package:classipod/core/extensions/build_context_extensions.dart';
 import 'package:classipod/core/extensions/go_router_extensions.dart';
 import 'package:classipod/core/navigation/routes.dart';
@@ -13,16 +12,13 @@ import 'package:classipod/features/settings/widgets/settings_list_tile.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 enum _SettingsDisplayItems {
-  about,
   shuffle,
   repeat,
   language,
   appTheme,
   coverFlowAppearance,
-  deviceColor,
   clickWheelSize,
   clickWheelSensitivity,
   isTouchScreenEnabled,
@@ -32,15 +28,15 @@ enum _SettingsDisplayItems {
   splitScreenEnabled,
   immersiveMode,
   ambientMode,
+  artworkGlow,
+  animationQuality,
   showAppTutorial,
   librarySettings,
   resetSettings,
-  donate;
+  legal;
 
   String title(BuildContext context) {
     switch (this) {
-      case about:
-        return context.localization.aboutScreenTitle;
       case shuffle:
         return context.localization.shuffleSettingTitle;
       case repeat:
@@ -53,8 +49,6 @@ enum _SettingsDisplayItems {
         return context.localization.themeSettingTitle;
       case isTouchScreenEnabled:
         return context.localization.touchScreenSettingTitle;
-      case deviceColor:
-        return context.localization.deviceColorSettingTitle;
       case clickWheelSize:
         return context.localization.clickWheelSizeSettingTitle;
       case clickWheelSensitivity:
@@ -71,14 +65,18 @@ enum _SettingsDisplayItems {
         return context.localization.immersiveModeSettingTitle;
       case ambientMode:
         return context.localization.ambientModeSettingTitle;
+      case artworkGlow:
+        return context.localization.artworkGlowSettingTitle;
+      case animationQuality:
+        return context.localization.animationQualitySettingTitle;
       case showAppTutorial:
         return context.localization.showAppTutorialSettingTitle;
       case librarySettings:
         return context.localization.librarySettingsScreenTitle;
       case resetSettings:
         return context.localization.resetSettingsTitle;
-      case donate:
-        return context.localization.donateSettingTitle;
+      case legal:
+        return context.localization.legalTitle;
     }
   }
 }
@@ -105,8 +103,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
   Future<void> _settingAction(_SettingsDisplayItems settingItem) async {
     setState(() => selectedDisplayItem = displayItems.indexOf(settingItem));
     switch (settingItem) {
-      case _SettingsDisplayItems.about:
-        context.goNamed(Routes.about.name);
+      case _SettingsDisplayItems.legal:
+        context.goNamed(Routes.legal.name);
         break;
       case _SettingsDisplayItems.language:
         context.goNamed(Routes.language.name);
@@ -124,13 +122,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
             .read(settingsPreferencesControllerProvider.notifier)
             .toggleCoverFlowAppearance();
         break;
+      case _SettingsDisplayItems.artworkGlow:
+        await ref
+            .read(settingsPreferencesControllerProvider.notifier)
+            .cycleArtworkGlow();
+        break;
+      case _SettingsDisplayItems.animationQuality:
+        await ref
+            .read(settingsPreferencesControllerProvider.notifier)
+            .cycleAnimationQuality();
+        break;
       case _SettingsDisplayItems.appTheme:
         await ref
             .read(settingsPreferencesControllerProvider.notifier)
             .toggleAppTheme();
-        break;
-      case _SettingsDisplayItems.deviceColor:
-        context.goNamed(Routes.deviceColor.name);
         break;
       case _SettingsDisplayItems.clickWheelSize:
         await ref
@@ -190,12 +195,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
             .read(settingsPreferencesControllerProvider.notifier)
             .resetSettings();
         break;
-      case _SettingsDisplayItems.donate:
-        await launchUrl(
-          Uri.parse(Constants.donationLinkUrl),
-          mode: LaunchMode.externalApplication,
-        );
-        break;
     }
   }
 
@@ -228,14 +227,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
     switch (settingsItem) {
       case _SettingsDisplayItems.shuffle:
         return ref.watch(nowPlayingDetailsProvider).shuffleMode.title(context);
-      case _SettingsDisplayItems.deviceColor:
-        return settingsState.deviceColor.title(context);
       case _SettingsDisplayItems.clickWheelSize:
         return settingsState.clickWheelSize.title(context);
       case _SettingsDisplayItems.clickWheelSensitivity:
         return settingsState.clickWheelSensitivity.title(context);
       case _SettingsDisplayItems.coverFlowAppearance:
         return settingsState.coverFlowAppearance.title(context);
+      case _SettingsDisplayItems.artworkGlow:
+        return settingsState.artworkGlow.title(context);
+      case _SettingsDisplayItems.animationQuality:
+        return settingsState.animationQuality.title(context);
       case _SettingsDisplayItems.appTheme:
         return settingsState.appTheme.title(context);
       case _SettingsDisplayItems.repeat:
@@ -261,11 +262,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       case _SettingsDisplayItems.language:
         ref.read(splitScreenControllerProvider.notifier).changeSplitScreenType =
             SplitScreenType.language;
-        break;
-
-      case _SettingsDisplayItems.deviceColor:
-        ref.read(splitScreenControllerProvider.notifier).changeSplitScreenType =
-            SplitScreenType.deviceColor;
         break;
       case _SettingsDisplayItems.appTheme:
         ref.read(splitScreenControllerProvider.notifier).changeSplitScreenType =
@@ -326,10 +322,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen>
       case _SettingsDisplayItems.resetSettings:
         ref.read(splitScreenControllerProvider.notifier).changeSplitScreenType =
             SplitScreenType.resetSettings;
-        break;
-      case _SettingsDisplayItems.donate:
-        ref.read(splitScreenControllerProvider.notifier).changeSplitScreenType =
-            SplitScreenType.donate;
         break;
       default:
         ref.read(splitScreenControllerProvider.notifier).changeSplitScreenType =

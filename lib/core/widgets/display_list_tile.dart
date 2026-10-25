@@ -10,11 +10,16 @@ class DisplayListTile extends StatelessWidget {
   final bool isSelected;
   final VoidCallback? onTap;
 
+  /// Marks the active choice of a set, like a classic iPod setting; the row
+  /// then shows a checkmark instead of the chevron.
+  final bool isChecked;
+
   const DisplayListTile({
     super.key,
     required this.text,
     required this.isSelected,
     this.onTap,
+    this.isChecked = false,
   });
 
   @override
@@ -56,7 +61,14 @@ class DisplayListTile extends StatelessWidget {
                     style: textStyle,
                   ),
                 ),
-                if (isSelected)
+                if (isChecked)
+                  Icon(
+                    CupertinoIcons.checkmark_alt,
+                    color: isSelected
+                        ? context.appInverseTextColor
+                        : context.appPrimaryTextColor,
+                  )
+                else if (isSelected)
                   Icon(
                     CupertinoIcons.right_chevron,
                     color: context.appInverseTextColor,

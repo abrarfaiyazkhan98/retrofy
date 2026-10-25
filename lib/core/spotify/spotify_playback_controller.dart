@@ -170,6 +170,7 @@ class SpotifyPlaybackController extends Notifier<SpotifyPlaybackState> {
                   trackUri: state.player!.trackUri,
                   trackName: state.player!.trackName,
                   artists: state.player!.artists,
+                  artistUris: state.player!.artistUris,
                   albumName: state.player!.albumName,
                   imageUri: state.player!.imageUri,
                   durationMs: state.player!.durationMs,
@@ -279,6 +280,58 @@ class SpotifyPlaybackController extends Notifier<SpotifyPlaybackState> {
     if (uri.startsWith('spotify:track:')) _requireOnDemand();
     return remote.play(uri);
   });
+
+  /// Queues [uri] after the playing track. Track choice needs Premium.
+  Future<void> queue(String uri) => _command((remote) {
+    _requireOnDemand();
+    return remote.queue(uri);
+  });
+
+  /// The moment a play request is sent and the track playing then, for
+  /// [confirmTrack].
+  ({DateTime since, String? before}) get requestMark =>
+      (since: _now(), before: state.player?.trackUri);
+
+  /// Waits for Spotify to settle on a track after the request marked by
+  /// [mark] and returns it, or null if Spotify reports no track at all.
+  ///
+  /// A report of [trackUri] confirms it at once, unless [trackUri] was
+  /// already playing: Spotify may report the old track once more before
+  /// switching, so then, like any other track, it only counts once nothing
+  /// changes for [grace]. If Spotify reports nothing new before [timeout],
+  /// whatever is playing is the answer, so an ignored request is noticed.
+  Future<String?> confirmTrack(
+    String trackUri, {
+    required ({DateTime since, String? before}) mark,
+    Duration timeout = const Duration(seconds: 4),
+    Duration grace = const Duration(seconds: 1),
+  }) {
+    final result = Completer<String?>();
+    Timer? settle;
+    void finish(String? uri) {
+      if (!result.isCompleted) result.complete(uri);
+    }
+
+    void reported(String? uri) {
+      if (uri == trackUri && uri != mark.before) return finish(uri);
+      settle?.cancel();
+      settle = Timer(grace, () => finish(uri));
+    }
+
+    final player = state.player;
+    if (player != null && !player.receivedAt.isBefore(mark.since)) {
+      reported(player.trackUri);
+    }
+    final subscription = _remote.events.listen((event) {
+      if (event is SpotifyPlayerStateEvent) reported(event.state.trackUri);
+    }, onDone: () => finish(state.player?.trackUri));
+    final deadline = Timer(timeout, () => finish(state.player?.trackUri));
+    return result.future.whenComplete(() {
+      settle?.cancel();
+      deadline.cancel();
+      unawaited(subscription.cancel());
+    });
+  }
 
   Future<void> resume() => _command((remote) => remote.resume());
 

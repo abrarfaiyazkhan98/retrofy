@@ -5,13 +5,17 @@ import 'package:classipod/core/services/audio_player_service.dart';
 import 'package:classipod/core/widgets/artwork_image.dart';
 import 'package:classipod/features/music/album/providers/album_details_provider.dart';
 import 'package:classipod/features/now_playing/provider/now_playing_details_provider.dart';
+import 'package:classipod/features/now_playing/widgets/immersive_ambient_view.dart';
+import 'package:classipod/features/settings/controller/settings_preferences_controller.dart';
+import 'package:classipod/features/settings/models/artwork_glow.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Retrofy's own low-power Now Playing: black screen, small cover, minimal
-/// text. It is not the phone's Always On Display and keeps no wake lock, so
-/// the screen still turns off on the system timeout. Any tap returns.
-class AmbientNowPlayingScreen extends ConsumerStatefulWidget {
+/// Retrofy's Ambient Mode. With Artwork Glow on it is the immersive player;
+/// with it off, the low-power black screen. Neither is the phone's Always On
+/// Display, and neither keeps a wake lock, so the screen still turns off on
+/// the system timeout.
+class AmbientNowPlayingScreen extends ConsumerWidget {
   const AmbientNowPlayingScreen({super.key});
 
   /// Shows the ambient screen over the whole app until tapped.
@@ -28,12 +32,27 @@ class AmbientNowPlayingScreen extends ConsumerStatefulWidget {
       );
 
   @override
-  ConsumerState<AmbientNowPlayingScreen> createState() =>
-      _AmbientNowPlayingScreenState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final glow = ref.watch(
+      settingsPreferencesControllerProvider.select((s) => s.artworkGlow),
+    );
+    return glow == ArtworkGlowStyle.off
+        ? const _LowPowerAmbientView()
+        : const ImmersiveAmbientView();
+  }
 }
 
-class _AmbientNowPlayingScreenState
-    extends ConsumerState<AmbientNowPlayingScreen>
+/// Black screen, small cover, minimal text that moves now and then so no
+/// pixel stays lit for long. Any tap returns.
+class _LowPowerAmbientView extends ConsumerStatefulWidget {
+  const _LowPowerAmbientView();
+
+  @override
+  ConsumerState<_LowPowerAmbientView> createState() =>
+      _LowPowerAmbientViewState();
+}
+
+class _LowPowerAmbientViewState extends ConsumerState<_LowPowerAmbientView>
     with WidgetsBindingObserver {
   /// Positions the block cycles through so no pixel stays lit for long.
   static const _positions = [
@@ -121,7 +140,7 @@ class _AmbientNowPlayingScreenState
                       ),
                       width: 96,
                       height: 96,
-                      fit: BoxFit.cover,
+                      fit: BoxFit.contain,
                       errorBuilder: (_, _, _) => Image.asset(
                         Assets.defaultAlbumCoverImage,
                         width: 96,

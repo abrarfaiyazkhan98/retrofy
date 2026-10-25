@@ -2,8 +2,11 @@ import 'dart:async';
 
 import 'package:classipod/core/extensions/build_context_extensions.dart';
 import 'package:classipod/core/navigation/routes.dart';
+import 'package:classipod/core/spotify/spotify_auth_controller.dart';
 import 'package:classipod/core/widgets/display_list_tile.dart';
 import 'package:classipod/features/custom_screen_elements/custom_screen.dart';
+import 'package:classipod/features/menu/providers/music_source_provider.dart';
+import 'package:classipod/features/spotify/screens/spotify_menu_screen.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -37,6 +40,9 @@ enum _MusicListDisplayItems {
   }
 }
 
+/// Music lists two source rows, Library and Spotify, with a checkmark on
+/// the active one, followed by that source's menu. The wheel reaches both
+/// sources without another menu level, and the choice is remembered.
 class MusicMenuScreen extends ConsumerStatefulWidget {
   const MusicMenuScreen({super.key});
 
@@ -49,20 +55,62 @@ class _MusicMenuScreenState extends ConsumerState<MusicMenuScreen>
   @override
   String get routeName => Routes.musicMenu.name;
 
+  SpotifyAuthState? get _auth => ref.watch(spotifyAuthControllerProvider).value;
+
+  /// [MusicSource] rows, then [_MusicListDisplayItems] for the library or
+  /// [SpotifyMenuItem]s for Spotify.
   @override
-  List<_MusicListDisplayItems> get displayItems =>
-      _MusicListDisplayItems.values;
+  List<Object> get displayItems => [
+    ...MusicSource.values,
+    ...switch (ref.watch(musicSourceProvider)) {
+      MusicSource.library => _MusicListDisplayItems.values,
+      MusicSource.spotify => spotifyMenuItems(_auth),
+    },
+  ];
 
   @override
-  Future<void> onSelectPressed() =>
-      _navigateToScreen(_MusicListDisplayItems.values[selectedDisplayItem]);
+  void initState() {
+    super.initState();
+    // Start on the source's first entry rather than the source rows.
+    selectedDisplayItem = MusicSource.values.length;
+  }
+
+  @override
+  Future<void> onSelectPressed() async {
+    final items = displayItems;
+    await _select(items[selectedDisplayItem.clamp(0, items.length - 1)]);
+  }
+
+  Future<void> _select(Object item) async {
+    setState(() => selectedDisplayItem = displayItems.indexOf(item));
+    switch (item) {
+      case final MusicSource source:
+        await ref.read(musicSourceProvider.notifier).choose(source);
+      case final SpotifyMenuItem spotifyItem:
+        await openSpotifyMenuItem(context, ref, spotifyItem);
+        if (spotifyItem == SpotifyMenuItem.signOut && mounted) {
+          setState(() => selectedDisplayItem = MusicSource.values.length);
+        }
+      case final _MusicListDisplayItems libraryItem:
+        await _navigateToScreen(libraryItem);
+    }
+  }
+
+  String _title(Object item) => switch (item) {
+    MusicSource.library => context.localization.musicSourceLibrary,
+    MusicSource.spotify => context.localization.spotifyTitle,
+    final SpotifyMenuItem spotifyItem => spotifyMenuTitle(
+      context,
+      spotifyItem,
+      _auth,
+    ),
+    final _MusicListDisplayItems libraryItem => libraryItem.title(context),
+    _ => '',
+  };
 
   Future<void> _navigateToScreen(
     _MusicListDisplayItems musicDisplayItem,
   ) async {
-    setState(
-      () => selectedDisplayItem = displayItems.indexOf(musicDisplayItem),
-    );
     switch (musicDisplayItem) {
       case _MusicListDisplayItems.coverFlow:
         unawaited(ref.read(splitScreenViewControllerProvider).closeSplitView());
@@ -95,6 +143,9 @@ class _MusicMenuScreenState extends ConsumerState<MusicMenuScreen>
 
   @override
   Widget build(BuildContext context) {
+    final items = displayItems;
+    final source = ref.watch(musicSourceProvider);
+    final selected = selectedDisplayItem.clamp(0, items.length - 1);
     return CupertinoPageScaffold(
       child: Column(
         children: [
@@ -103,15 +154,16 @@ class _MusicMenuScreenState extends ConsumerState<MusicMenuScreen>
               controller: scrollController,
               child: ListView.builder(
                 controller: scrollController,
-                itemCount: displayItems.length,
+                itemCount: items.length,
                 prototypeItem: const DisplayListTile(
                   text: '',
                   isSelected: false,
                 ),
                 itemBuilder: (context, index) => DisplayListTile(
-                  text: displayItems[index].title(context),
-                  isSelected: selectedDisplayItem == index,
-                  onTap: () async => _navigateToScreen(displayItems[index]),
+                  text: _title(items[index]),
+                  isSelected: selected == index,
+                  isChecked: items[index] == source,
+                  onTap: () => unawaited(_select(items[index])),
                 ),
               ),
             ),

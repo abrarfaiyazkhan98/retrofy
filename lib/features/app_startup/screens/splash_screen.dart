@@ -62,12 +62,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset(
-                  Assets.appIcon,
-                  height: 64,
-                  width: 64,
-                  color: CupertinoColors.white,
-                ),
+                Image.asset(Assets.retrofyLogo, height: 64, width: 64),
                 if (!startup.hasError)
                   LibraryLoadingProgress(
                     progress: ref.watch(libraryProgressProvider),

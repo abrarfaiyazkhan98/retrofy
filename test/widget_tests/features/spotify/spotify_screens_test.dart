@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:classipod/core/models/music_metadata.dart';
 import 'package:classipod/core/navigation/routes.dart';
+import 'package:classipod/core/providers/shared_preferences_with_cache_provider.dart';
 import 'package:classipod/core/services/audio_player_service.dart';
 import 'package:classipod/core/spotify/spotify_auth.dart';
 import 'package:classipod/core/spotify/spotify_auth_controller.dart';
@@ -11,6 +12,7 @@ import 'package:classipod/core/spotify/spotify_remote.dart';
 import 'package:classipod/core/spotify/spotify_token_store.dart';
 import 'package:classipod/features/device/models/device_action.dart';
 import 'package:classipod/features/device/services/device_buttons_service_provider.dart';
+import 'package:classipod/features/menu/screens/music_menu_screen.dart';
 import 'package:classipod/features/now_playing/models/now_playing_model.dart';
 import 'package:classipod/features/spotify/models/spotify_track_source.dart';
 import 'package:classipod/features/spotify/screens/spotify_menu_screen.dart';
@@ -20,6 +22,8 @@ import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 /// Click wheel without vibration or click sounds.
 class SilentWheel extends DeviceButtonsServiceNotifier {
@@ -95,6 +99,7 @@ void main() {
   late FakeAuth auth;
   late RecordingService service;
   late ProviderContainer container;
+  var prefs = InMemorySharedPreferencesAsync.empty();
 
   Future<void> pumpRoute(
     WidgetTester tester,
@@ -116,6 +121,8 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
+    SharedPreferencesAsyncPlatform.instance = prefs;
+    await container.read(sharedPreferencesWithCacheProvider.future);
     GoRoute capture(Routes route) => GoRoute(
       path: route.name,
       name: route.name,
@@ -128,6 +135,12 @@ void main() {
       initialLocation: location,
       initialExtra: extra,
       routes: [
+        GoRoute(
+          path: '/music',
+          name: Routes.musicMenu.name,
+          builder: (_, _) => const MusicMenuScreen(),
+          routes: [capture(Routes.songs)],
+        ),
         GoRoute(
           path: '/spotify',
           name: Routes.spotify.name,
@@ -170,6 +183,56 @@ void main() {
         .setDeviceAction(action);
     await tester.pumpAndSettle();
   }
+
+  group('music_sources', () {
+    setUp(() => prefs = InMemorySharedPreferencesAsync.empty());
+
+    Future<void> moveTo(WidgetTester tester, String row) async {
+      await tester.tap(find.text(row));
+      await tester.pumpAndSettle();
+    }
+
+    spotifyTest('Music opens on the library, with both sources on top', (
+      tester,
+    ) async {
+      await pumpRoute(tester, '/music');
+      expect(find.text('Library'), findsOneWidget);
+      expect(find.text('Spotify'), findsOneWidget);
+      expect(find.text('Songs'), findsOneWidget);
+      expect(find.text('Liked Songs'), findsNothing);
+      await wheel(tester, DeviceAction.select);
+      expect(opened, isEmpty, reason: 'Cover Flow is not captured here');
+    });
+
+    spotifyTest('choosing Spotify lists Spotify and is remembered', (
+      tester,
+    ) async {
+      await pumpRoute(tester, '/music');
+      await moveTo(tester, 'Spotify');
+      expect(find.text('Liked Songs'), findsOneWidget);
+      expect(find.text('Songs'), findsNothing);
+
+      await moveTo(tester, 'Playlists');
+      expect(opened.single, isA<SpotifyBrowseSource>());
+
+      // A new launch opens Music on Spotify again.
+      await tester.pumpWidget(const SizedBox());
+      await pumpRoute(tester, '/music');
+      expect(find.text('Liked Songs'), findsOneWidget);
+
+      await moveTo(tester, 'Library');
+      expect(find.text('Songs'), findsOneWidget);
+      await moveTo(tester, 'Songs');
+      expect(opened.last, Routes.songs.name);
+    });
+
+    spotifyTest('switching sources does not touch playback', (tester) async {
+      await pumpRoute(tester, '/music');
+      await moveTo(tester, 'Spotify');
+      await moveTo(tester, 'Library');
+      expect(service.requests, isEmpty);
+    });
+  });
 
   group('spotify_menu', () {
     spotifyTest('signed out offers sign in on the center button', (

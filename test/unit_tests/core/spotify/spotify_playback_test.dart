@@ -1,25 +1,34 @@
 import 'dart:async';
 import 'dart:collection';
+import 'dart:convert';
 
 import 'package:audio_service/audio_service.dart';
 
 import 'package:classipod/core/models/music_metadata.dart';
 import 'package:classipod/core/models/playback_shuffle_mode.dart';
 import 'package:classipod/core/providers/filtered_audio_files_provider.dart';
+import 'package:classipod/core/providers/shared_preferences_with_cache_provider.dart';
 import 'package:classipod/core/services/audio_player_service.dart';
 import 'package:classipod/core/services/playback/library_audio_handler.dart';
 import 'package:classipod/core/services/playback/playback_backend.dart';
+import 'package:classipod/core/spotify/spotify_api_client.dart';
 import 'package:classipod/core/spotify/spotify_auth.dart';
 import 'package:classipod/core/spotify/spotify_auth_controller.dart';
 import 'package:classipod/core/spotify/spotify_config.dart';
 import 'package:classipod/core/spotify/spotify_playback_controller.dart';
 import 'package:classipod/core/spotify/spotify_remote.dart';
+import 'package:classipod/features/menu/providers/music_source_provider.dart';
 import 'package:classipod/features/now_playing/models/now_playing_model.dart';
 import 'package:classipod/features/now_playing/provider/now_playing_details_provider.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
 class FakeSpotifyRemote implements SpotifyRemote {
   final controller = StreamController<SpotifyRemoteEvent>.broadcast();
@@ -62,13 +71,69 @@ class FakeSpotifyRemote implements SpotifyRemote {
     if (connectError != null) throw SpotifyException(connectError!);
   }
 
+  /// Tracks of each context in the order the Spotify app plays them, so
+  /// commands report the track Spotify would start, as the real app does.
+  final contexts = <String, List<String>>{};
+
+  /// Track URIs Spotify will not start on their own; it keeps playing
+  /// [stuckOn] instead.
+  final refused = <String>{};
+  String stuckOn = 'spotify:track:other';
+
+  /// Track URIs whose direct play Spotify ignores without any report.
+  final silent = <String>{};
+
+  /// Reported once, before the next command's own report, like Spotify
+  /// echoing the old track while it switches.
+  String? echoBefore;
+  DateTime Function() clock = DateTime.now;
+
+  void _report(String? trackUri) {
+    if (trackUri == null) return;
+    final echo = echoBefore;
+    echoBefore = null;
+    if (echo != null) {
+      scheduleMicrotask(
+        () => controller.add(
+          SpotifyPlayerStateEvent(
+            SpotifyPlayerState(trackUri: echo, receivedAt: clock()),
+          ),
+        ),
+      );
+    }
+    scheduleMicrotask(
+      () => controller.add(
+        SpotifyPlayerStateEvent(
+          SpotifyPlayerState(
+            trackUri: trackUri,
+            isPaused: false,
+            receivedAt: clock(),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Future<void> disconnect() => _record('disconnect');
   @override
-  Future<void> play(String uri) => _record('play $uri');
+  Future<void> play(String uri) async {
+    await _record('play $uri');
+    // A whole context may start shuffled, so only single tracks report.
+    if (uri.startsWith('spotify:track:') && !silent.contains(uri)) {
+      _report(refused.contains(uri) ? stuckOn : uri);
+    }
+  }
+
   @override
-  Future<void> skipToIndex(String contextUri, int index) =>
-      _record('skipToIndex $contextUri $index');
+  Future<void> queue(String uri) => _record('queue $uri');
+
+  @override
+  Future<void> skipToIndex(String contextUri, int index) async {
+    await _record('skipToIndex $contextUri $index');
+    _report(contexts[contextUri]?.elementAtOrNull(index));
+  }
+
   @override
   Future<void> resume() => _record('resume');
   @override
@@ -179,6 +244,10 @@ void main() {
   late LocalPlayer player;
   late ProviderContainer container;
   late DateTime now;
+
+  /// Liked Songs the Web API reports, and the requests it received.
+  var likedTotal = 120;
+  final apiRequests = <String>[];
   final playlist = [
     spotifyTrack('a', 0),
     spotifyTrack('b', 5),
@@ -239,7 +308,20 @@ void main() {
   }
 
   setUp(() async {
-    remote = FakeSpotifyRemote();
+    SharedPreferencesAsyncPlatform.instance =
+        InMemorySharedPreferencesAsync.empty();
+    likedTotal = 120;
+    apiRequests.clear();
+    remote = FakeSpotifyRemote()..clock = () => now;
+    remote.contexts[contextUri] = [
+      for (var i = 0; i <= 6; i++)
+        playlist
+            .firstWhere(
+              (track) => track.originalSongIndex == i,
+              orElse: () => spotifyTrack('hidden$i', i),
+            )
+            .songId!,
+    ];
     player = LocalPlayer();
     now = DateTime(2026, 1, 1, 12);
     final handler = LibraryAudioHandler(player);
@@ -260,6 +342,22 @@ void main() {
           ),
         ),
         spotifyAuthControllerProvider.overrideWith(SignedInAuth.new),
+        spotifyApiProvider.overrideWithValue(
+          SpotifyApiClient(
+            ({forceRefresh = false}) async => 'token',
+            client: MockClient((request) async {
+              apiRequests.add(request.url.path);
+              final body = switch (request.url.path) {
+                '/v1/me/tracks' => {'items': [], 'total': likedTotal},
+                '/v1/me' => {'id': 'u1', 'display_name': 'Listener'},
+                _ => null,
+              };
+              return body == null
+                  ? http.Response('', 404)
+                  : http.Response(jsonEncode(body), 200);
+            }),
+          ),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -329,6 +427,116 @@ void main() {
       await playPlaylistTrack(0);
       await playPlaylistTrack(1);
       expect(remote.calls.where((call) => call == 'connect'), hasLength(1));
+    });
+  });
+
+  group('spotify_selection_accuracy', () {
+    List<MusicMetadata> bigPlaylist(int length) => [
+      for (var i = 0; i < length; i++) spotifyTrack('t$i', i),
+    ];
+
+    for (final length in [1, 10, 50, 100, 500]) {
+      test('first, middle and last of $length tracks play exactly', () async {
+        final tracks = bigPlaylist(length);
+        const uri = 'spotify:playlist:big';
+        remote.contexts[uri] = [for (final track in tracks) track.songId!];
+        for (final index in {0, length ~/ 2, length - 1}) {
+          await service().playSpotify(
+            tracks: tracks,
+            index: index,
+            contextUri: uri,
+          );
+          expect(remote.calls.last, 'skipToIndex $uri $index');
+          expect(spotify().player?.trackUri, tracks[index].songId);
+          expect(nowPlaying().currentMetadata, tracks[index]);
+        }
+        expect(remote.calls.where((call) => call.startsWith('play ')), isEmpty);
+      });
+    }
+
+    test('a context that starts another track is corrected', () async {
+      // The Spotify app leaves out an item the Web API lists (e.g. an
+      // unplayable track), so every later index lands one track too far.
+      remote.contexts[contextUri] = [
+        for (final id in ['a', 'h1', 'h2', 'h3', 'h4', 'b', 'c'])
+          'spotify:track:$id',
+      ]..removeAt(1);
+
+      await playPlaylistTrack(1);
+
+      expect(remote.calls.sublist(1), [
+        'skipToIndex spotify:playlist:p 5',
+        'play spotify:track:b',
+      ]);
+      expect(spotify().player?.trackUri, 'spotify:track:b');
+      expect(nowPlaying().currentMetadata, playlist[1]);
+    });
+
+    test('Spotify refusing the chosen track is reported, not hidden', () async {
+      remote.contexts[contextUri] = List.filled(7, 'spotify:track:other');
+      remote.refused.add('spotify:track:c');
+
+      expect(await errorCode(() => playPlaylistTrack(2)), 'wrong_track');
+      expect(
+        nowPlaying().currentMetadata,
+        isNot(playlist[2]),
+        reason: 'Now Playing must not claim the chosen track plays',
+      );
+    });
+
+    test('shuffle stays as it is when a track is tapped', () async {
+      await emitState('a', shuffling: true);
+      await playPlaylistTrack(2);
+      expect(remote.calls.where((call) => call.startsWith('setShuffle')), []);
+      expect(spotify().player?.trackUri, 'spotify:track:c');
+      expect(nowPlaying().currentMetadata, playlist[2]);
+    });
+
+    test('Spotify ignoring the direct request is reported', () async {
+      // Champion's "Be Alright": unplayable here, so Spotify starts the next
+      // track for the context and then ignores the track on its own.
+      remote.contexts[contextUri] = List.filled(7, 'spotify:track:next');
+      remote.silent.add('spotify:track:c');
+
+      expect(await errorCode(() => playPlaylistTrack(2)), 'wrong_track');
+      expect(nowPlaying().currentMetadata, isNot(playlist[2]));
+    });
+
+    test('re-tapping the playing track waits for Spotify to settle', () async {
+      await emitState('c');
+      // Spotify repeats the old track once, then starts the next one.
+      remote.contexts[contextUri] = List.filled(7, 'spotify:track:next');
+      remote.echoBefore = 'spotify:track:c';
+      remote.refused.add('spotify:track:c');
+
+      expect(await errorCode(() => playPlaylistTrack(2)), 'wrong_track');
+      expect(
+        remote.calls.where((call) => call == 'play spotify:track:c'),
+        hasLength(1),
+        reason: 'the stale report did not count as success',
+      );
+    });
+
+    test('re-tapping the playing track that Spotify keeps succeeds', () async {
+      await emitState('c');
+      await playPlaylistTrack(2);
+      expect(remote.calls.last, 'skipToIndex spotify:playlist:p 6');
+      expect(nowPlaying().currentMetadata, playlist[2]);
+    });
+
+    test('switching playlists plays the track of the newest one', () async {
+      const other = 'spotify:playlist:other';
+      final otherTracks = [spotifyTrack('x', 0), spotifyTrack('y', 1)];
+      remote.contexts[other] = ['spotify:track:x', 'spotify:track:y'];
+      await playPlaylistTrack(2);
+      await service().playSpotify(
+        tracks: otherTracks,
+        index: 1,
+        contextUri: other,
+      );
+      expect(spotify().player?.trackUri, 'spotify:track:y');
+      expect(nowPlaying().currentMetadata, otherTracks[1]);
+      expect(nowPlaying().metadataList, otherTracks);
     });
   });
 
@@ -593,6 +801,133 @@ void main() {
       await settle();
       expect(remote.calls.last, 'disconnect');
       expect(spotify().connection, SpotifyConnection.disconnected);
+    });
+  });
+
+  group('shuffle_my_music', () {
+    test(
+      'with Spotify as the source, Liked Songs shuffle in Spotify',
+      () async {
+        await container
+            .read(musicSourceProvider.notifier)
+            .choose(MusicSource.spotify);
+        expect(service().shuffleMyMusicUsesSpotify, isTrue);
+        await service().shuffleMyMusic();
+        expect(remote.calls, [
+          'connect',
+          'setShuffle true',
+          'play spotify:user:u1:collection',
+        ]);
+        expect(
+          remote.calls,
+          isNot(contains('pause')),
+          reason: 'Spotify is never paused to shuffle an empty library',
+        );
+        expect(backend(), PlaybackBackend.spotify);
+        expect(player.playing, isFalse);
+        // Spotify picks the tracks; Now Playing follows what it reports.
+        await emitState('liked7', shuffling: true);
+        expect(nowPlaying().currentMetadata?.songId, 'spotify:track:liked7');
+        expect(nowPlaying().isShuffleEnabled, isTrue);
+        await emitState('liked3', shuffling: true);
+        expect(nowPlaying().currentMetadata?.songId, 'spotify:track:liked3');
+      },
+    );
+
+    test('shuffling Liked Songs while it plays starts a new track', () async {
+      await container
+          .read(musicSourceProvider.notifier)
+          .choose(MusicSource.spotify);
+      await service().shuffleMyMusic();
+      await emitState('liked7', shuffling: true);
+      remote.calls.clear();
+      // Spotify keeps playing liked7 when its own context is requested.
+      await service().shuffleMyMusic();
+      expect(remote.calls, [
+        'setShuffle true',
+        'play spotify:user:u1:collection',
+        'skipNext',
+      ]);
+    });
+
+    test('an empty Liked Songs reports it and plays nothing', () async {
+      await container
+          .read(musicSourceProvider.notifier)
+          .choose(MusicSource.spotify);
+      likedTotal = 0;
+      expect(await errorCode(service().shuffleMyMusic), 'no_liked_songs');
+      expect(remote.calls.where((c) => c.startsWith('play')), isEmpty);
+    });
+
+    test('free accounts may shuffle Liked Songs', () async {
+      await container
+          .read(musicSourceProvider.notifier)
+          .choose(MusicSource.spotify);
+      remote.controller.add(
+        const SpotifyCapabilitiesEvent(canPlayOnDemand: false),
+      );
+      await settle();
+      expect(await errorCode(service().shuffleMyMusic), 'none');
+      expect(remote.calls.last, 'play spotify:user:u1:collection');
+    });
+
+    test('with the library as the source, local songs shuffle', () async {
+      await container
+          .read(musicSourceProvider.notifier)
+          .choose(MusicSource.library);
+      expect(service().shuffleMyMusicUsesSpotify, isFalse);
+      await service().shuffleMyMusic();
+      expect(remote.calls, isEmpty, reason: 'Spotify is not involved');
+      expect(apiRequests, isEmpty);
+      expect(backend(), PlaybackBackend.library);
+      expect(nowPlaying().shuffleMode, PlaybackShuffleMode.songs);
+    });
+
+    test('signed out, Shuffle My Music uses the library', () async {
+      await container
+          .read(musicSourceProvider.notifier)
+          .choose(MusicSource.spotify);
+      (container.read(spotifyAuthControllerProvider.notifier) as SignedInAuth)
+          .signOutNow();
+      expect(service().shuffleMyMusicUsesSpotify, isFalse);
+    });
+  });
+
+  group('spotify_session_resume', () {
+    late SharedPreferencesWithCache prefs;
+    const key = 'spotifySessionActive';
+
+    setUp(() async {
+      prefs = await container.read(sharedPreferencesWithCacheProvider.future);
+    });
+
+    test('playing Spotify is remembered until local music plays', () async {
+      await playPlaylistTrack(1);
+      await settle();
+      expect(prefs.getBool(key), isTrue);
+      await service().setAudioSource(musicMetadataList: [localTrack('one')]);
+      await settle();
+      expect(prefs.getBool(key), isFalse);
+    });
+
+    test('a restarted Retrofy shows what Spotify is playing', () async {
+      await prefs.setBool(key, true);
+      await service().resumeSpotifySession();
+      expect(backend(), PlaybackBackend.spotify);
+      expect(remote.calls, ['connect']);
+      expect(
+        remote.calls.where((c) => c.startsWith('play')),
+        isEmpty,
+        reason: 'resuming never starts playback',
+      );
+      await emitState('x');
+      expect(nowPlaying().currentMetadata?.trackName, 'Remote x');
+    });
+
+    test('without a Spotify session nothing reconnects', () async {
+      await service().resumeSpotifySession();
+      expect(backend(), PlaybackBackend.library);
+      expect(remote.calls, isEmpty);
     });
   });
 

@@ -1,6 +1,8 @@
 import 'package:classipod/features/menu/widgets/animated_album_art_scroller.dart';
 import 'package:classipod/features/music/album/models/album_model.dart';
 import 'package:classipod/features/music/album/providers/album_details_provider.dart';
+import 'package:classipod/features/now_playing/provider/now_playing_details_provider.dart';
+import 'package:classipod/l10n/generated/app_localizations.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -19,7 +21,10 @@ void main() {
     }).toList();
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [albumDetailsProvider.overrideWithValue(albums)],
+        overrides: [
+          albumDetailsProvider.overrideWithValue(albums),
+          nowPlayingArtworkPathProvider.overrideWithValue(null),
+        ],
         child: const CupertinoApp(
           home: SizedBox(
             width: 200,
@@ -65,5 +70,55 @@ void main() {
     }
     await tester.pumpWidget(const SizedBox.shrink());
     expect(tester.takeException(), isNull);
+  });
+
+  group('split_screen_now_playing', () {
+    const cover = 'test/test_files/ClassiPod/thumbnails/FadedbyAlanWalker.jpg';
+
+    Future<ProviderContainer> pump(
+      WidgetTester tester, {
+      required String? playing,
+    }) async {
+      final container = ProviderContainer(
+        overrides: [
+          albumDetailsProvider.overrideWithValue(const []),
+          nowPlayingArtworkPathProvider.overrideWithValue(playing),
+        ],
+      );
+      addTearDown(container.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const CupertinoApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: SizedBox(
+              width: 200,
+              height: 400,
+              child: AnimatedAlbumArtScroller(),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      return container;
+    }
+
+    testWidgets('Spotify playing without a local library shows its cover', (
+      tester,
+    ) async {
+      await pump(tester, playing: cover);
+      expect(find.text('No Music'), findsNothing);
+      final image = tester.widget<Image>(find.byType(Image).first);
+      expect((image.key! as ValueKey<String?>).value, cover);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+
+    testWidgets('nothing playing and no library still says No Music', (
+      tester,
+    ) async {
+      await pump(tester, playing: null);
+      expect(find.text('No Music'), findsOneWidget);
+    });
   });
 }

@@ -7,11 +7,11 @@ enum SplitScreenType {
   preventDuplicateTracks,
   missingTracks,
   shuffle,
+  matchYourMood,
   nowPlaying,
   sleepTimer,
   language,
   appTheme,
-  deviceColor,
   clickWheelSize,
   clickWheelSensitivity,
   touchScreen,
@@ -27,5 +27,4 @@ enum SplitScreenType {
   refreshLibrary,
   excludeDirectories,
   resetSettings,
-  donate,
 }

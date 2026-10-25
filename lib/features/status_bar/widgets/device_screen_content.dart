@@ -237,7 +237,6 @@ class _DeviceScreenContentState extends ConsumerState<DeviceScreenContent>
     Routes.settings.name,
     Routes.librarySettings.name,
     Routes.language.name,
-    Routes.deviceColor.name,
     Routes.sleepTimer.name,
   }.contains(state.name);
 

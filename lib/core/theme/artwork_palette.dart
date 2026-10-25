@@ -3,25 +3,87 @@ import 'dart:typed_data';
 
 import 'package:cupertino_ui/cupertino_ui.dart';
 
-/// A restrained palette taken from album artwork: a dark [scrim] that keeps
-/// white text readable and a brighter [accent] for progress and lyrics.
+/// A restrained palette taken from album artwork.
+///
+/// [primary] and [secondary] are the cover's two strongest colour families,
+/// toned down for large glowing fields; [accent] is its most vivid colour for
+/// progress and lyrics; [scrim] is a dark tint of the whole cover that keeps
+/// white text readable and serves as the atmospheric base.
 @immutable
 class ArtworkPalette {
   final Color scrim;
   final Color accent;
+  final Color primary;
+  final Color secondary;
 
-  const ArtworkPalette({required this.scrim, required this.accent});
+  const ArtworkPalette({
+    required this.scrim,
+    required this.accent,
+    required this.primary,
+    required this.secondary,
+  });
 
   static const fallback = ArtworkPalette(
     scrim: Color(0xFF15171C),
     accent: Color(0xFF6FB3FF),
+    primary: Color(0xFF2E4A6E),
+    secondary: Color(0xFF4A3A6A),
   );
+
+  /// Dark base under the glow; the same colour as [scrim].
+  Color get base => scrim;
+
+  /// Text and icon colour over [base].
+  Color get foreground => const Color(0xFFFFFFFF);
+
+  /// Background of the Now Playing information panel under the cover: the
+  /// cover's own dark tone, restrained so it never looks neon and white text
+  /// always keeps a contrast of 7:1 or more.
+  Color get panel {
+    final hsl = HSLColor.fromColor(scrim);
+    return hsl
+        .withSaturation(hsl.saturation.clamp(0, 0.32))
+        .withLightness(hsl.lightness.clamp(0.13, 0.18))
+        .toColor();
+  }
+
+  /// Top of the Now Playing backdrop: the cover's main colour family,
+  /// darkened and desaturated so the display reads as an extension of the
+  /// cover without turning neon. White text keeps a contrast of 7:1 or more.
+  Color get ambient {
+    final hsl = HSLColor.fromColor(primary);
+    return hsl
+        .withSaturation(hsl.saturation.clamp(0, 0.42))
+        .withLightness(hsl.lightness.clamp(0.12, 0.2))
+        .toColor();
+  }
+
+  /// Bottom of the backdrop: the cover's overall tint settling towards
+  /// OLED black.
+  Color get depth {
+    final hsl = HSLColor.fromColor(scrim);
+    return hsl
+        .withSaturation(hsl.saturation.clamp(0, 0.4))
+        .withLightness(hsl.lightness.clamp(0.03, 0.07))
+        .toColor();
+  }
+
+  /// Soft light from the cover's second colour family, behind the artwork.
+  Color get glow => secondary.withValues(alpha: 0.28);
+
+  /// Translucent surface under the lyrics: a lighter tint of the cover's
+  /// main colour laid thinly over the backdrop.
+  Color get glass =>
+      Color.lerp(primary, const Color(0xFFFFFFFF), 0.4)!.withValues(alpha: 0.1);
 
   /// Builds the palette from RGBA pixels of a small thumbnail.
   factory ArtworkPalette.fromPixels(Uint8List rgba) {
     var r = 0, g = 0, b = 0, count = 0;
     HSLColor? vivid;
     var vividScore = 0.0;
+    // Chromatic pixels grouped into 12 hue families of 30 degrees.
+    final weights = List<double>.filled(_hueFamilies, 0);
+    final sums = List<List<double>>.generate(_hueFamilies, (_) => [0, 0, 0]);
     for (var i = 0; i + 3 < rgba.length; i += 4) {
       if (rgba[i + 3] < 128) continue;
       r += rgba[i];
@@ -33,12 +95,19 @@ class ArtworkPalette {
       );
       // Prefer saturated mid-tones; near-black and near-white make poor
       // accents.
-      final score =
-          hsl.saturation * (1 - (hsl.lightness - 0.5).abs() * 2).clamp(0, 1);
+      final midTone = (1 - (hsl.lightness - 0.5).abs() * 2).clamp(0.0, 1.0);
+      final score = hsl.saturation * midTone;
       if (score > vividScore) {
         vividScore = score;
         vivid = hsl;
       }
+      if (hsl.saturation < 0.18 || midTone < 0.2) continue;
+      final family = (hsl.hue / 360 * _hueFamilies).floor() % _hueFamilies;
+      final weight = 0.5 + score;
+      weights[family] += weight;
+      sums[family][0] += rgba[i] * weight;
+      sums[family][1] += rgba[i + 1] * weight;
+      sums[family][2] += rgba[i + 2] * weight;
     }
     if (count == 0) return fallback;
     final average = HSLColor.fromColor(
@@ -54,11 +123,87 @@ class ArtworkPalette {
               .withSaturation(vivid.saturation.clamp(0.35, 0.8))
               .withLightness(0.62)
               .toColor();
-    return ArtworkPalette(scrim: scrim, accent: accent);
+
+    HSLColor familyColor(int family) {
+      final w = weights[family];
+      return HSLColor.fromColor(
+        Color.fromARGB(
+          255,
+          (sums[family][0] / w).round(),
+          (sums[family][1] / w).round(),
+          (sums[family][2] / w).round(),
+        ),
+      );
+    }
+
+    final ranked = [
+      for (var i = 0; i < _hueFamilies; i++)
+        if (weights[i] > 0) i,
+    ]..sort((a, c) => weights[c].compareTo(weights[a]));
+    // A cover counts as colourful once a tenth of it is one colour family;
+    // otherwise its glow stays in the cover's own near-neutral tones.
+    final colourful = ranked.isNotEmpty && weights[ranked.first] >= count * 0.1;
+    final primary = colourful ? familyColor(ranked.first) : average;
+    HSLColor? second;
+    if (colourful) {
+      for (final family in ranked.skip(1)) {
+        if (weights[family] < weights[ranked.first] * 0.25) break;
+        final candidate = familyColor(family);
+        if (_hueDistance(candidate.hue, primary.hue) >= 40) {
+          second = candidate;
+          break;
+        }
+      }
+    }
+    // Single-colour covers get a neighbouring shade instead of a second hue.
+    second ??= primary
+        .withHue((primary.hue + 24) % 360)
+        .withLightness((primary.lightness - 0.08).clamp(0, 1));
+    return ArtworkPalette(
+      scrim: scrim,
+      accent: accent,
+      primary: _glowTone(primary),
+      secondary: _glowTone(second),
+    );
   }
+
+  static const _hueFamilies = 12;
+
+  static double _hueDistance(double a, double b) {
+    final d = (a - b).abs() % 360;
+    return d > 180 ? 360 - d : d;
+  }
+
+  /// Glow fields sit behind white text: never neon, never near-white.
+  static Color _glowTone(HSLColor color) => color
+      .withSaturation(color.saturation.clamp(0, 0.7))
+      .withLightness(color.lightness.clamp(0.24, 0.48))
+      .toColor();
 
   /// WCAG contrast ratio of white text on [scrim]; kept at 4.5 or more.
   double get whiteTextContrast => 1.05 / (scrim.computeLuminance() + 0.05);
+
+  static ArtworkPalette lerp(ArtworkPalette a, ArtworkPalette b, double t) {
+    if (t <= 0) return a;
+    if (t >= 1) return b;
+    return ArtworkPalette(
+      scrim: Color.lerp(a.scrim, b.scrim, t)!,
+      accent: Color.lerp(a.accent, b.accent, t)!,
+      primary: Color.lerp(a.primary, b.primary, t)!,
+      secondary: Color.lerp(a.secondary, b.secondary, t)!,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is ArtworkPalette &&
+      other.scrim == scrim &&
+      other.accent == accent &&
+      other.primary == primary &&
+      other.secondary == secondary;
+
+  @override
+  int get hashCode => Object.hash(scrim, accent, primary, secondary);
 }
 
 /// Palettes are computed once per artwork and kept for recently shown
@@ -82,7 +227,8 @@ class ArtworkPaletteCache {
 
   static Future<ArtworkPalette> _extract(ImageProvider provider) {
     final completer = Completer<ArtworkPalette>();
-    // Decoding a 24 px thumbnail keeps this off the interaction path.
+    // The engine decodes a 24 px thumbnail off the UI thread; reading its
+    // 576 pixels here costs well under a millisecond.
     final stream = ResizeImage(
       provider,
       width: 24,

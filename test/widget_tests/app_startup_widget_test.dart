@@ -9,6 +9,7 @@ import 'package:classipod/core/providers/shared_preferences_with_cache_provider.
 import 'package:classipod/features/app_startup/controllers/app_startup_controller.dart';
 import 'package:classipod/features/app_startup/screens/app_startup_screen.dart';
 import 'package:classipod/features/app_startup/screens/splash_screen.dart';
+import 'package:classipod/features/app_startup/widgets/boot_screen.dart';
 import 'package:classipod/features/settings/controller/settings_preferences_controller.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter/services.dart';
@@ -54,7 +55,9 @@ void main() {
         );
   });
 
-  testWidgets('Displays Cupertino Loading Widget', (WidgetTester tester) async {
+  testWidgets('Displays the boot screen while starting', (
+    WidgetTester tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(300, 812));
     await tester.pumpWidget(
       UncontrolledProviderScope(
@@ -62,7 +65,8 @@ void main() {
         child: const AppStartupScreen(app: ClassipodApp()),
       ),
     );
-    expect(find.byType(CupertinoActivityIndicator), findsOne);
+    expect(find.byType(BootScreen), findsOne);
+    expect(find.byType(CupertinoActivityIndicator), findsNothing);
   });
 
   testWidgets('Displays Splash Screen', (WidgetTester tester) async {
@@ -90,7 +94,11 @@ void main() {
         child: const AppStartupScreen(app: ClassipodApp()),
       ),
     );
-    await tester.pumpAndSettle();
+    // Dependencies of startup retry with back-off before failing; nothing
+    // animates meanwhile, so advance time explicitly.
+    for (var i = 0; i < 60; i++) {
+      await tester.pump(const Duration(seconds: 1));
+    }
     await expectLater(find.textContaining('Test Exception'), findsOne);
   });
 }

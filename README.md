@@ -216,7 +216,7 @@ builds require the Visual Studio ATL component used by flutter_secure_storage.
 | [**shared_preferences**](https://pub.dev/packages/shared_preferences)                         | To store system settings                                                            |
 | [**tutorial_coach_mark**](https://pub.dev/packages/tutorial_coach_mark)                       | To provide app tutorial to the users                                                |
 | [**universal_html**](https://pub.dev/packages/universal_html)                                 | For Launching the app in full-screen mode on web versions                           |
-| [**url_launcher**](https://pub.dev/packages/url_launcher)                                     | For Launching the Donation Page Link                                                |
+| [**url_launcher**](https://pub.dev/packages/url_launcher)                                     | For opening links (Go to Artist, legal pages)                                                |
 | [**vibration**](https://pub.dev/packages/vibration)                                           | Used for vibration while using device controls                                      |
 | [**vibration_web**](https://pub.dev/packages/vibration_web)                                   | Used for vibration on the webapp version                                            |
 | [**build_runner**](https://pub.dev/packages/build_runner)                                     | For code generation                                                                 |

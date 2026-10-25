@@ -1,6 +1,5 @@
 enum SharedPreferencesKeys {
   languageLocaleCode,
-  deviceColor,
   clickWheelSize,
   clickWheelSensitivity,
   isTouchScreenEnabled,
@@ -10,6 +9,10 @@ enum SharedPreferencesKeys {
   volumeMode,
   appTheme,
   coverFlowAppearance,
+  artworkGlow,
+  animationQuality,
+  musicSource,
+  spotifySessionActive,
   splitScreenEnabled,
   immersiveMode,
   ambientMode,

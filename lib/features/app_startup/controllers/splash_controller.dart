@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:classipod/core/navigation/routes.dart';
@@ -54,6 +55,9 @@ class SplashControllerNotifier extends AsyncNotifier<void> {
     await ref
         .read(audioPlayerServiceProvider.notifier)
         .restoreSession(filteredAudioFilesMetadata);
+    unawaited(
+      ref.read(audioPlayerServiceProvider.notifier).resumeSpotifySession(),
+    );
 
     // Invalidate the providers that depend on the audio files metadata
     ref.invalidate(albumDetailsProvider);

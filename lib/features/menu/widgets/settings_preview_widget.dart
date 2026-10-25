@@ -37,7 +37,7 @@ class SettingsPreviewWidget extends StatelessWidget {
               ),
               Center(
                 child: Image.asset(
-                  Assets.appIcon,
+                  Assets.retrofyLogo,
                   height: 64,
                   width: 64,
                   color: AppPalette.previewForeground,

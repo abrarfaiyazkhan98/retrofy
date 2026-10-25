@@ -12,7 +12,9 @@ import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-enum _SpotifyMenuItem {
+/// Rows of the Spotify menu, shown in Music when Spotify is the source and
+/// on the standalone Spotify screen.
+enum SpotifyMenuItem {
   notConfigured,
   signIn,
   signingIn,
@@ -25,6 +27,111 @@ enum _SpotifyMenuItem {
   search,
   account,
   signOut,
+}
+
+/// The rows for the current sign-in state; empty while it is unknown.
+List<SpotifyMenuItem> spotifyMenuItems(SpotifyAuthState? auth) =>
+    switch (auth?.status) {
+      null => const [],
+      SpotifyAuthStatus.notConfigured => const [SpotifyMenuItem.notConfigured],
+      SpotifyAuthStatus.signingIn => const [SpotifyMenuItem.signingIn],
+      SpotifyAuthStatus.signedOut => [
+        SpotifyMenuItem.signIn,
+        if (auth?.error != null) SpotifyMenuItem.error,
+      ],
+      SpotifyAuthStatus.signedIn => const [
+        SpotifyMenuItem.playlists,
+        SpotifyMenuItem.albums,
+        SpotifyMenuItem.artists,
+        SpotifyMenuItem.likedSongs,
+        SpotifyMenuItem.recentlyPlayed,
+        SpotifyMenuItem.search,
+        SpotifyMenuItem.account,
+        SpotifyMenuItem.signOut,
+      ],
+    };
+
+String spotifyMenuTitle(
+  BuildContext context,
+  SpotifyMenuItem item,
+  SpotifyAuthState? auth,
+) {
+  final l10n = context.localization;
+  return switch (item) {
+    SpotifyMenuItem.notConfigured => l10n.spotifyNotConfigured,
+    SpotifyMenuItem.signIn => l10n.spotifySignIn,
+    SpotifyMenuItem.signingIn => l10n.spotifySigningIn,
+    SpotifyMenuItem.error => spotifyErrorText(context, auth?.error),
+    SpotifyMenuItem.playlists => l10n.playlistsScreenTitle,
+    SpotifyMenuItem.albums => l10n.albumsScreenTitle,
+    SpotifyMenuItem.artists => l10n.artistsScreenTitle,
+    SpotifyMenuItem.likedSongs => l10n.spotifyLikedSongs,
+    SpotifyMenuItem.recentlyPlayed => l10n.spotifyRecentlyPlayed,
+    SpotifyMenuItem.search => l10n.searchScreenTitle,
+    SpotifyMenuItem.account => l10n.spotifySignedInAs(
+      auth?.profile?.displayName ?? '…',
+    ),
+    SpotifyMenuItem.signOut => l10n.spotifySignOut,
+  };
+}
+
+/// Opens [item]'s screen or runs its action.
+Future<void> openSpotifyMenuItem(
+  BuildContext context,
+  WidgetRef ref,
+  SpotifyMenuItem item,
+) async {
+  final auth = ref.read(spotifyAuthControllerProvider.notifier);
+  switch (item) {
+    case SpotifyMenuItem.signIn:
+    case SpotifyMenuItem.signingIn:
+      await auth.signIn();
+    case SpotifyMenuItem.signOut:
+      await auth.signOut();
+    case SpotifyMenuItem.playlists:
+      await context.pushNamed(
+        Routes.spotifyBrowse.name,
+        extra: const SpotifyBrowseSource.playlists(),
+      );
+    case SpotifyMenuItem.albums:
+      await context.pushNamed(
+        Routes.spotifyBrowse.name,
+        extra: const SpotifyBrowseSource.savedAlbums(),
+      );
+    case SpotifyMenuItem.artists:
+      await context.pushNamed(
+        Routes.spotifyBrowse.name,
+        extra: const SpotifyBrowseSource.artists(),
+      );
+    case SpotifyMenuItem.likedSongs:
+      final profile = ref.read(spotifyAuthControllerProvider).value?.profile;
+      await context.pushNamed(
+        Routes.spotifyTracks.name,
+        extra: SpotifyTrackSource(
+          title: context.localization.spotifyLikedSongs,
+          tracks: spotifyLikedSongsProvider,
+          // Liked Songs plays as the user's collection context when the
+          // profile is known, so Next continues through the library.
+          contextUri: profile == null
+              ? null
+              : 'spotify:user:${profile.id}:collection',
+        ),
+      );
+    case SpotifyMenuItem.recentlyPlayed:
+      await context.pushNamed(
+        Routes.spotifyTracks.name,
+        extra: SpotifyTrackSource(
+          title: context.localization.spotifyRecentlyPlayed,
+          tracks: spotifyRecentlyPlayedProvider,
+        ),
+      );
+    case SpotifyMenuItem.search:
+      await context.pushNamed(Routes.spotifySearch.name);
+    case SpotifyMenuItem.notConfigured:
+    case SpotifyMenuItem.error:
+    case SpotifyMenuItem.account:
+      break;
+  }
 }
 
 class SpotifyMenuScreen extends ConsumerStatefulWidget {
@@ -42,48 +149,7 @@ class _SpotifyMenuScreenState extends ConsumerState<SpotifyMenuScreen>
   SpotifyAuthState? get _auth => ref.watch(spotifyAuthControllerProvider).value;
 
   @override
-  List<_SpotifyMenuItem> get displayItems {
-    final auth = _auth;
-    return switch (auth?.status) {
-      null => const [],
-      SpotifyAuthStatus.notConfigured => const [_SpotifyMenuItem.notConfigured],
-      SpotifyAuthStatus.signingIn => const [_SpotifyMenuItem.signingIn],
-      SpotifyAuthStatus.signedOut => [
-        _SpotifyMenuItem.signIn,
-        if (auth?.error != null) _SpotifyMenuItem.error,
-      ],
-      SpotifyAuthStatus.signedIn => const [
-        _SpotifyMenuItem.playlists,
-        _SpotifyMenuItem.albums,
-        _SpotifyMenuItem.artists,
-        _SpotifyMenuItem.likedSongs,
-        _SpotifyMenuItem.recentlyPlayed,
-        _SpotifyMenuItem.search,
-        _SpotifyMenuItem.account,
-        _SpotifyMenuItem.signOut,
-      ],
-    };
-  }
-
-  String _title(_SpotifyMenuItem item) {
-    final l10n = context.localization;
-    return switch (item) {
-      _SpotifyMenuItem.notConfigured => l10n.spotifyNotConfigured,
-      _SpotifyMenuItem.signIn => l10n.spotifySignIn,
-      _SpotifyMenuItem.signingIn => l10n.spotifySigningIn,
-      _SpotifyMenuItem.error => spotifyErrorText(context, _auth?.error),
-      _SpotifyMenuItem.playlists => l10n.playlistsScreenTitle,
-      _SpotifyMenuItem.albums => l10n.albumsScreenTitle,
-      _SpotifyMenuItem.artists => l10n.artistsScreenTitle,
-      _SpotifyMenuItem.likedSongs => l10n.spotifyLikedSongs,
-      _SpotifyMenuItem.recentlyPlayed => l10n.spotifyRecentlyPlayed,
-      _SpotifyMenuItem.search => l10n.searchScreenTitle,
-      _SpotifyMenuItem.account => l10n.spotifySignedInAs(
-        _auth?.profile?.displayName ?? '…',
-      ),
-      _SpotifyMenuItem.signOut => l10n.spotifySignOut,
-    };
-  }
+  List<SpotifyMenuItem> get displayItems => spotifyMenuItems(_auth);
 
   @override
   Future<void> onSelectPressed() async {
@@ -92,59 +158,11 @@ class _SpotifyMenuScreenState extends ConsumerState<SpotifyMenuScreen>
     await _select(items[selectedDisplayItem.clamp(0, items.length - 1)]);
   }
 
-  Future<void> _select(_SpotifyMenuItem item) async {
+  Future<void> _select(SpotifyMenuItem item) async {
     setState(() => selectedDisplayItem = displayItems.indexOf(item));
-    final auth = ref.read(spotifyAuthControllerProvider.notifier);
-    switch (item) {
-      case _SpotifyMenuItem.signIn:
-      case _SpotifyMenuItem.signingIn:
-        await auth.signIn();
-      case _SpotifyMenuItem.signOut:
-        await auth.signOut();
-        if (mounted) setState(() => selectedDisplayItem = 0);
-      case _SpotifyMenuItem.playlists:
-        await context.pushNamed(
-          Routes.spotifyBrowse.name,
-          extra: const SpotifyBrowseSource.playlists(),
-        );
-      case _SpotifyMenuItem.albums:
-        await context.pushNamed(
-          Routes.spotifyBrowse.name,
-          extra: const SpotifyBrowseSource.savedAlbums(),
-        );
-      case _SpotifyMenuItem.artists:
-        await context.pushNamed(
-          Routes.spotifyBrowse.name,
-          extra: const SpotifyBrowseSource.artists(),
-        );
-      case _SpotifyMenuItem.likedSongs:
-        final profile = ref.read(spotifyAuthControllerProvider).value?.profile;
-        await context.pushNamed(
-          Routes.spotifyTracks.name,
-          extra: SpotifyTrackSource(
-            title: context.localization.spotifyLikedSongs,
-            tracks: spotifyLikedSongsProvider,
-            // Liked Songs plays as the user's collection context when the
-            // profile is known, so Next continues through the library.
-            contextUri: profile == null
-                ? null
-                : 'spotify:user:${profile.id}:collection',
-          ),
-        );
-      case _SpotifyMenuItem.recentlyPlayed:
-        await context.pushNamed(
-          Routes.spotifyTracks.name,
-          extra: SpotifyTrackSource(
-            title: context.localization.spotifyRecentlyPlayed,
-            tracks: spotifyRecentlyPlayedProvider,
-          ),
-        );
-      case _SpotifyMenuItem.search:
-        await context.pushNamed(Routes.spotifySearch.name);
-      case _SpotifyMenuItem.notConfigured:
-      case _SpotifyMenuItem.error:
-      case _SpotifyMenuItem.account:
-        break;
+    await openSpotifyMenuItem(context, ref, item);
+    if (item == SpotifyMenuItem.signOut && mounted) {
+      setState(() => selectedDisplayItem = 0);
     }
   }
 
@@ -167,7 +185,7 @@ class _SpotifyMenuScreenState extends ConsumerState<SpotifyMenuScreen>
                   isSelected: false,
                 ),
                 itemBuilder: (context, index) => DisplayListTile(
-                  text: _title(items[index]),
+                  text: spotifyMenuTitle(context, items[index], _auth),
                   isSelected: selected == index,
                   onTap: () => unawaited(_select(items[index])),
                 ),

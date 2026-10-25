@@ -60,10 +60,51 @@ class LrclibClient {
     }
     final synced = data['syncedLyrics'];
     final plain = data['plainLyrics'];
+    if (synced is! String || synced.trim().isEmpty) {
+      // The exact entry may only have plain lyrics while another entry of
+      // the same recording (a single, a compilation) is synced.
+      final other = await _syncedElsewhere(title, artist, track);
+      if (other != null) return other;
+    }
     final lyrics =
         Lyrics.parse(synced is String ? synced : null, LyricsSource.lrclib) ??
         Lyrics.parse(plain is String ? plain : null, LyricsSource.lrclib);
     return lyrics;
+  }
+
+  /// Synced lyrics from another LRCLIB entry with the same title and artist
+  /// whose duration is within two seconds of [track]'s. Failures here are
+  /// ignored: the plain lyrics already found are shown instead.
+  Future<Lyrics?> _syncedElsewhere(
+    String title,
+    String artist,
+    MusicMetadata track,
+  ) async {
+    final seconds = track.getTrackDuration / 1000;
+    if (seconds <= 0) return null;
+    try {
+      final response = await _get(
+        Uri.https('lrclib.net', '/api/search', {
+          'track_name': title,
+          'artist_name': artist,
+        }),
+      );
+      if (response.statusCode != 200) return null;
+      final results = jsonDecode(utf8.decode(response.bodyBytes));
+      if (results is! List) return null;
+      for (final entry in results) {
+        if (entry is! Map) continue;
+        final duration = entry['duration'];
+        final synced = entry['syncedLyrics'];
+        if (duration is num &&
+            (duration - seconds).abs() <= 2 &&
+            synced is String) {
+          final lyrics = Lyrics.parse(synced, LyricsSource.lrclib);
+          if (lyrics != null && lyrics.isSynced) return lyrics;
+        }
+      }
+    } catch (_) {}
+    return null;
   }
 
   void close() => _http.close();
@@ -118,6 +159,11 @@ final lrcFileReaderProvider = Provider<Future<String?> Function(String)>(
 /// 1. embedded tag lyrics (synced when they carry LRC timestamps),
 /// 2. a `.lrc` file beside a local track,
 /// 3. LRCLIB, for Spotify tracks.
+///
+/// A failed LRCLIB lookup (offline, 503) is not cached and is retried after
+/// [lyricsRetryDelay] while the track is on screen.
+const lyricsRetryDelay = Duration(seconds: 30);
+
 final lyricsProvider = FutureProvider.autoDispose.family<Lyrics?, MusicMetadata>((
   ref,
   track,
@@ -148,6 +194,10 @@ final lyricsProvider = FutureProvider.autoDispose.family<Lyrics?, MusicMetadata>
     debugPrint(
       'Lyrics lookup failed: ${error is HttpException ? error.message : error.runtimeType}',
     );
+    // While the track is still shown, try again a little later; the timer
+    // dies with the provider, so nothing polls once the track changes.
+    final retry = Timer(lyricsRetryDelay, ref.invalidateSelf);
+    ref.onDispose(retry.cancel);
     return null;
   }
 });

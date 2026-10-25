@@ -6,6 +6,7 @@ import 'package:classipod/core/models/music_metadata.dart';
 import 'package:classipod/core/models/playback_shuffle_mode.dart';
 import 'package:classipod/core/services/audio_player_service.dart';
 import 'package:classipod/core/services/playback/library_audio_handler.dart';
+import 'package:classipod/core/widgets/artwork_glow.dart';
 import 'package:classipod/features/device/models/device_action.dart';
 import 'package:classipod/features/device/services/device_buttons_service_provider.dart';
 import 'package:classipod/features/device/widgets/device_controls.dart';
@@ -13,13 +14,14 @@ import 'package:classipod/features/now_playing/models/now_playing_model.dart';
 import 'package:classipod/features/now_playing/provider/now_playing_details_provider.dart';
 import 'package:classipod/features/now_playing/screen/ambient_now_playing_screen.dart';
 import 'package:classipod/features/now_playing/screen/now_playing_screen.dart';
+import 'package:classipod/features/now_playing/widgets/immersive_ambient_view.dart';
 import 'package:classipod/features/now_playing/widgets/now_playing_bottom_bar.dart';
 import 'package:classipod/features/now_playing/widgets/scrubber_bar.dart';
 import 'package:classipod/features/now_playing/widgets/shuffle_segmented_control.dart';
 import 'package:classipod/features/settings/controller/settings_preferences_controller.dart';
+import 'package:classipod/features/settings/models/artwork_glow.dart';
 import 'package:classipod/features/settings/models/click_wheel_sensitivity.dart';
 import 'package:classipod/features/settings/models/click_wheel_size.dart';
-import 'package:classipod/features/settings/models/device_color.dart';
 import 'package:classipod/features/settings/models/settings_preferences_model.dart';
 import 'package:classipod/features/settings/models/volume_mode.dart';
 import 'package:classipod/features/tutorial/controller/tutorial_controller.dart';
@@ -55,10 +57,13 @@ class _Player extends Fake implements AudioPlayer {
 }
 
 class _Details extends NowPlayingDetailsNotifier {
-  _Details(this.hasLyrics, {this.playing = false});
+  _Details(this.hasLyrics, {this.playing = false, this.emptyQueue = false});
 
   final bool hasLyrics;
   final bool playing;
+
+  /// A Spotify session resumed after a restart: a track, no listed queue.
+  final bool emptyQueue;
   int ratingIncreases = 0;
   int ratingDecreases = 0;
 
@@ -78,7 +83,7 @@ class _Details extends NowPlayingDetailsNotifier {
       isPlaying: playing,
       nowPlayingType: NowPlayingType.songs,
       currentMetadata: song,
-      metadataList: [song],
+      metadataList: emptyQueue ? const [] : [song],
       shuffleMode: PlaybackShuffleMode.off,
       loopMode: LoopMode.off,
     );
@@ -148,9 +153,6 @@ class _AudioService extends AudioPlayerServiceNotifier {
 
 class _SettingsModel extends Fake implements SettingsPreferencesModel {
   @override
-  DeviceColor get deviceColor => DeviceColor.values.first;
-
-  @override
   ClickWheelSize get clickWheelSize => ClickWheelSize.medium;
 
   @override
@@ -167,9 +169,16 @@ class _SettingsModel extends Fake implements SettingsPreferencesModel {
   VolumeMode get volumeMode => VolumeMode.app;
 
   static bool ambient = false;
+  static ArtworkGlowStyle glow = ArtworkGlowStyle.off;
 
   @override
   bool get ambientMode => ambient;
+
+  @override
+  ArtworkGlowStyle get artworkGlow => glow;
+
+  @override
+  AnimationQuality get animationQuality => AnimationQuality.auto;
 }
 
 class _Settings extends SettingsPreferencesControllerNotifier {
@@ -219,12 +228,13 @@ void main() {
     WidgetTester tester, {
     bool hasLyrics = true,
     bool playing = false,
+    bool emptyQueue = false,
   }) async {
     audio = _AudioService();
     container = ProviderContainer(
       overrides: [
         nowPlayingDetailsProvider.overrideWith(
-          () => _Details(hasLyrics, playing: playing),
+          () => _Details(hasLyrics, playing: playing, emptyQueue: emptyQueue),
         ),
         tutorialControllerProvider.overrideWith(_Tutorial.new),
         audioPlayerServiceProvider.overrideWith(() => audio),
@@ -275,6 +285,122 @@ void main() {
   void wheelGesture(bool active) {
     container.read(clickWheelGestureProvider.notifier).active = active;
   }
+
+  group('now_playing_redesign', () {
+    testWidgets('a resumed Spotify session without a queue shows its track', (
+      tester,
+    ) async {
+      await mount(tester, emptyQueue: true);
+      expect(find.text('No Music'), findsNothing);
+      expect(find.text('Song'), findsWidgets);
+    });
+
+    testWidgets('lyrics show inside Now Playing without navigating', (
+      tester,
+    ) async {
+      await mount(tester);
+      expect(find.text('LYRICS'), findsOneWidget);
+      expect(find.textContaining('Line one'), findsOneWidget);
+    });
+
+    testWidgets('a track without lyrics says so and keeps playing', (
+      tester,
+    ) async {
+      await mount(tester, hasLyrics: false);
+      expect(find.text('Lyrics unavailable for this track.'), findsOneWidget);
+      expect(find.byType(NowPlayingBottomBar), findsWidgets);
+    });
+
+    testWidgets('a compact cover sits beside the title above the lyrics', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await mount(tester);
+      final cover = tester.getRect(
+        find.byKey(const ValueKey('now-playing-artwork')),
+      );
+      final title = tester.getRect(find.text('Song').first);
+      final lyrics = tester.getRect(
+        find.byKey(const ValueKey('now-playing-lyrics-surface')),
+      );
+      expect(cover.width, lessThan(360 * 0.6));
+      expect(title.left, greaterThan(cover.right), reason: 'title beside');
+      expect(lyrics.top, greaterThanOrEqualTo(cover.bottom));
+      expect(lyrics.height, greaterThanOrEqualTo(640 * 0.4));
+      final progress = tester.getRect(find.byType(NowPlayingBottomBar).first);
+      expect(progress.top, greaterThanOrEqualTo(lyrics.bottom));
+    });
+
+    testWidgets('a track without a readable cover keeps OLED black', (
+      tester,
+    ) async {
+      await mount(tester);
+      await tester.pumpAndSettle();
+      final backdrop = tester.widget<DecoratedBox>(
+        find.byKey(const ValueKey('now-playing-backdrop')),
+      );
+      final gradient =
+          (backdrop.decoration as BoxDecoration).gradient! as LinearGradient;
+      expect(gradient.colors, everyElement(const Color(0xFF000000)));
+    });
+
+    testWidgets('Go to Artist replaces browsing for lyrics', (tester) async {
+      await mount(tester);
+      expect(find.byKey(const ValueKey('go-to-artist')), findsOneWidget);
+      expect(find.text('Go to Artist'), findsOneWidget);
+    });
+
+    for (final size in const [
+      Size(360, 640),
+      Size(360, 300),
+      Size(360, 220),
+      Size(430, 260),
+      Size(700, 330),
+    ]) {
+      testWidgets('split-screen window $size keeps the track controllable', (
+        tester,
+      ) async {
+        tester.view.physicalSize = size;
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        await mount(tester);
+        expect(tester.takeException(), isNull, reason: 'no overflow');
+        expect(find.text('Song').hitTestable(), findsWidgets);
+        expect(find.byType(NowPlayingBottomBar).hitTestable(), findsWidgets);
+        expect(
+          find.byKey(const ValueKey('go-to-artist')).hitTestable(),
+          findsOneWidget,
+        );
+      });
+    }
+
+    testWidgets('resizing the window keeps the same track and position', (
+      tester,
+    ) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(360, 640);
+      addTearDown(tester.view.reset);
+      await mount(tester, playing: true);
+      final before = container.read(nowPlayingDetailsProvider);
+      // Enter split screen, resize it, then return to full screen.
+      for (final size in const [
+        Size(360, 300),
+        Size(360, 420),
+        Size(360, 640),
+      ]) {
+        tester.view.physicalSize = size;
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(find.text('Song').hitTestable(), findsWidgets);
+      }
+      final after = container.read(nowPlayingDetailsProvider);
+      expect(after.currentMetadata, before.currentMetadata);
+      expect(after.isPlaying, isTrue);
+      expect(audio.seeks, isEmpty, reason: 'no restart or seek on resize');
+    });
+  });
 
   for (final forward in [true, false]) {
     testWidgets(
@@ -651,7 +777,33 @@ void main() {
   }
 
   group('ambient_mode', () {
-    tearDown(() => _SettingsModel.ambient = false);
+    tearDown(() {
+      _SettingsModel.ambient = false;
+      _SettingsModel.glow = ArtworkGlowStyle.off;
+    });
+
+    testWidgets('with Artwork Glow it is the immersive player', (tester) async {
+      _SettingsModel.ambient = true;
+      _SettingsModel.glow = ArtworkGlowStyle.dynamic;
+      await mount(tester, playing: true);
+      await tester.pump(const Duration(seconds: 31));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byType(ImmersiveAmbientView), findsOneWidget);
+      expect(find.byType(ArtworkGlow), findsOneWidget);
+      expect(find.bySemanticsLabel('Pause'), findsOneWidget);
+
+      // Taps on the player work it rather than closing Ambient Mode.
+      await tester.tap(find.bySemanticsLabel('Pause'));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byType(ImmersiveAmbientView), findsOneWidget);
+
+      await tester.tap(find.bySemanticsLabel('Close Ambient Mode'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byType(ImmersiveAmbientView), findsNothing);
+      expect(find.byType(NowPlayingScreen), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
 
     testWidgets('appears after 30 s of no input while playing', (tester) async {
       _SettingsModel.ambient = true;

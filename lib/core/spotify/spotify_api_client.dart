@@ -145,25 +145,70 @@ class SpotifyApiClient {
       ?SpotifyPlaylist.fromJson(item),
   ];
 
-  Future<List<MusicMetadata>> playlistTracks(String playlistId) async {
-    final items = await _paged('playlists/$playlistId/items', {
-      'limit': '50',
-      'additional_types': 'track',
-    });
-    return [
-      for (var i = 0; i < items.length; i++)
-        if (items[i] case final Map entry)
-          ?spotifyTrackToMetadata(entry['item'] ?? entry['track'], position: i),
-    ];
+  /// Lists the tracks of a playback context (playlist, album, Liked Songs)
+  /// with the positions the Spotify app uses for them. With
+  /// `market=from_token` the Web API marks tracks this account cannot play
+  /// (e.g. not available in its country); the Spotify app leaves those out
+  /// of the context, so they are dropped here and the tracks after them
+  /// numbered as the app counts them. Otherwise every later row would start
+  /// the track after it.
+  List<MusicMetadata> _contextTracks(
+    List<Object?> items,
+    Object? Function(Object? entry) unwrap, {
+    SpotifyAlbum? album,
+  }) {
+    final tracks = <MusicMetadata>[];
+    var position = 0;
+    for (final entry in items) {
+      final item = unwrap(entry);
+      if (item is Map && item['is_playable'] == false) {
+        debugPrint('Spotify cannot play ${item['uri']} here; not listed');
+        continue;
+      }
+      final track = spotifyTrackToMetadata(
+        item,
+        position: position++,
+        album: album,
+      );
+      if (track != null) tracks.add(track);
+    }
+    return tracks;
   }
 
-  Future<List<MusicMetadata>> savedTracks() async {
-    final items = await _paged('me/tracks', {'limit': '50'});
-    return [
-      for (var i = 0; i < items.length; i++)
-        if (items[i] case final Map entry)
-          ?spotifyTrackToMetadata(entry['track'], position: i),
-    ];
+  static Object? _trackOf(Object? entry) =>
+      entry is Map ? entry['item'] ?? entry['track'] : null;
+
+  Future<List<MusicMetadata>> playlistTracks(String playlistId) async =>
+      _contextTracks(
+        await _paged('playlists/$playlistId/items', {
+          'limit': '50',
+          'additional_types': 'track',
+          'market': 'from_token',
+        }),
+        _trackOf,
+      );
+
+  Future<List<MusicMetadata>> savedTracks() async => _contextTracks(
+    await _paged('me/tracks', {'limit': '50', 'market': 'from_token'}),
+    _trackOf,
+  );
+
+  /// Raw audio features (tempo, energy, valence) for up to 100 track IDs.
+  /// Apps created after November 2024 get 403 here; callers must treat
+  /// that as "no data", never as a reason to guess.
+  Future<List<Object?>> audioFeatures(List<String> trackIds) async {
+    final response = await get('audio-features', {'ids': trackIds.join(',')});
+    final items = response['audio_features'];
+    if (items is! List) throw const SpotifyException('response');
+    return items;
+  }
+
+  /// How many Liked Songs the user has, from a one-item page.
+  Future<int> savedTrackCount() async {
+    final response = await get('me/tracks', {'limit': '1'});
+    final total = response['total'];
+    if (total is! int) throw const SpotifyException('response');
+    return total;
   }
 
   Future<List<SpotifyAlbum>> savedAlbums() async => [
@@ -171,13 +216,15 @@ class SpotifyApiClient {
       if (item case final Map entry) ?SpotifyAlbum.fromJson(entry['album']),
   ];
 
-  Future<List<MusicMetadata>> albumTracks(SpotifyAlbum album) async {
-    final items = await _paged('albums/${album.id}/tracks', {'limit': '50'});
-    return [
-      for (var i = 0; i < items.length; i++)
-        ?spotifyTrackToMetadata(items[i], position: i, album: album),
-    ];
-  }
+  Future<List<MusicMetadata>> albumTracks(SpotifyAlbum album) async =>
+      _contextTracks(
+        await _paged('albums/${album.id}/tracks', {
+          'limit': '50',
+          'market': 'from_token',
+        }),
+        (entry) => entry,
+        album: album,
+      );
 
   Future<List<SpotifyArtist>> followedArtists() async => [
     for (final item in await _paged('me/following', {
@@ -194,6 +241,14 @@ class SpotifyApiClient {
     }, limit: 200))
       ?SpotifyAlbum.fromJson(item),
   ];
+
+  /// The artists credited on one track, with their Spotify IDs.
+  Future<List<SpotifyArtist>> trackArtists(String trackId) async {
+    final response = await get('tracks/$trackId');
+    final artists = response['artists'];
+    if (artists is! List) throw const SpotifyException('response');
+    return [for (final artist in artists) ?SpotifyArtist.fromJson(artist)];
+  }
 
   /// Recently played has no playing context, so positions are only for keys.
   Future<List<MusicMetadata>> recentlyPlayed() async {
@@ -218,6 +273,7 @@ class SpotifyApiClient {
       'q': trimmed,
       'type': 'track,album,artist',
       'limit': '10',
+      'market': 'from_token',
     });
     List<Object?> items(String key) {
       final page = response[key];
@@ -226,7 +282,11 @@ class SpotifyApiClient {
           : const [];
     }
 
-    final tracks = items('tracks');
+    // Search results play on their own, so unplayable ones are dropped.
+    final tracks = [
+      for (final item in items('tracks'))
+        if (item is! Map || item['is_playable'] != false) item,
+    ];
     return SpotifySearchResults(
       tracks: [
         for (var i = 0; i < tracks.length; i++)

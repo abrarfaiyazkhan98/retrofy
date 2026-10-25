@@ -13,6 +13,7 @@ import 'package:classipod/core/widgets/subtle_reflection.dart';
 import 'package:classipod/features/device/models/device_action.dart';
 import 'package:classipod/features/device/services/device_buttons_service_provider.dart';
 import 'package:classipod/features/music/album/providers/album_details_provider.dart';
+import 'package:classipod/features/now_playing/artist/artist_choice_screen.dart';
 import 'package:classipod/features/now_playing/provider/now_playing_details_provider.dart';
 import 'package:classipod/features/now_playing/screen/ambient_now_playing_screen.dart';
 import 'package:classipod/features/now_playing/widgets/now_playing_artwork_scene.dart';
@@ -28,7 +29,6 @@ import 'package:classipod/features/tutorial/controller/tutorial_controller.dart'
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:just_audio/just_audio.dart';
 import 'package:volume_controller/volume_controller.dart';
 
 enum _NowPlayingBottomBarPage {
@@ -152,6 +152,8 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
         await returnToProgressBar();
       }
     } else if (_bottomBarPage == _NowPlayingBottomBarPage.lyrics) {
+      // Select leaves lyrics scrolling and returns to the sung line.
+      _lyricsViewKey.currentState?.resumeFollowing();
       await _bottomBarPageController.animateToPage(
         5,
         duration: const Duration(milliseconds: 300),
@@ -518,7 +520,9 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
 
     ref.listen(deviceButtonsServiceProvider, deviceControlHandler);
 
-    if (nowPlayingDetails.metadataList.isEmpty) {
+    // A Spotify session resumed after a restart has a current track but no
+    // listed queue; only a missing track means nothing is playing.
+    if (nowPlayingDetails.currentMetadata == null) {
       return CupertinoPageScaffold(
         child: Column(
           children: [
@@ -563,7 +567,8 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
                   });
                 },
               ),
-              if (hasLyrics) const SizedBox(height: 10),
+              // Lyrics mode keeps the progress bar in view.
+              if (hasLyrics) const NowPlayingBottomBar(),
               const NowPlayingBottomBar(),
             ]),
     ];
@@ -575,12 +580,18 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
       bottomBarPages[returnPage] = const NowPlayingBottomBar();
     }
 
+    final lyricsState = nowPlayingDetails.currentMetadata == null
+        ? null
+        : ref.watch(lyricsProvider(nowPlayingDetails.currentMetadata!));
+    final lyricsActive = _bottomBarPage == _NowPlayingBottomBarPage.lyrics;
+
     return Listener(
       onPointerDown: (_) => restartBarInactivityTimer(),
       onPointerMove: (_) => restartBarInactivityTimer(),
       onPointerUp: (_) => restartBarInactivityTimer(),
       onPointerSignal: (_) => restartBarInactivityTimer(),
       child: CupertinoPageScaffold(
+        backgroundColor: const Color(0xFF000000),
         child: NowPlayingArtworkScene(
           artworkPath: ref.watch(
             songAlbumArtworkProvider(nowPlayingDetails.currentMetadata),
@@ -588,83 +599,51 @@ class _NowPlayingScreenState extends ConsumerState<NowPlayingScreen> {
           heroTag:
               "${nowPlayingDetails.currentMetadata?.albumName}-"
               "${nowPlayingDetails.currentMetadata?.albumArtistName}",
-          dimmed: _bottomBarPage == _NowPlayingBottomBarPage.lyrics,
-          child: Column(
-            children: [
-              const SizedBox(height: 6),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+          onArtworkTap: () => unawaited(handleUserInput(onSelectPressed)),
+          onArtworkLongPress: () =>
+              unawaited(handleUserInput(onSelectLongPress)),
+          panel: NowPlayingPanel(
+            lyricsSynced: lyrics?.isSynced ?? false,
+            lyricsActive: lyricsActive,
+            // Lyrics never hold up playback: a failed lookup is simply
+            // reported as unavailable.
+            lyricsMessage: lyricsState?.isLoading ?? false
+                ? context.localization.lyricsLoading
+                : context.localization.lyricsUnavailable,
+            lyrics: lyrics == null
+                ? null
+                : AnimatedSwitcher(
+                    duration: MediaQuery.disableAnimationsOf(context)
+                        ? Duration.zero
+                        : const Duration(milliseconds: 300),
+                    child: SyncedLyricsView(
+                      key: _lyricsViewKey,
+                      lyrics: lyrics,
+                      scrollController: _lyricsScrollController,
+                      fontWeight: FontWeight.w600,
+                      lineHeight: 1.4,
+                      currentColor: CupertinoColors.white,
+                    ),
+                  ),
+            onLyricsLabelTap: () =>
+                _lyricsViewKey.currentState?.resumeFollowing(),
+            onGoToArtist: () => unawaited(goToArtist(context, ref)),
+            bottomBar: SizedBox(
+              height: 24 + SubtleReflection.visibleHeight,
+              child: PageView(
+                controller: _bottomBarPageController,
+                physics: const NeverScrollableScrollPhysics(),
                 children: [
-                  if (nowPlayingDetails.isShuffleEnabled)
-                    const Padding(
-                      padding: EdgeInsets.only(right: 10),
-                      child: Icon(
-                        CupertinoIcons.shuffle,
-                        size: 20,
-                        color: CupertinoColors.white,
-                      ),
-                    ),
-                  if (nowPlayingDetails.loopMode != LoopMode.off)
+                  for (final page in bottomBarPages)
                     Padding(
-                      padding: const EdgeInsets.only(right: 10),
-                      child: Icon(
-                        (nowPlayingDetails.loopMode == LoopMode.all)
-                            ? CupertinoIcons.repeat
-                            : CupertinoIcons.repeat_1,
-                        size: 20,
-                        color: CupertinoColors.white,
+                      padding: const EdgeInsets.only(
+                        bottom: SubtleReflection.visibleHeight,
                       ),
+                      child: page,
                     ),
-                  if (!nowPlayingDetails.isShuffleEnabled &&
-                      nowPlayingDetails.loopMode == LoopMode.off)
-                    const SizedBox(height: 20),
                 ],
               ),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => unawaited(handleUserInput(onSelectPressed)),
-                  onLongPress: () =>
-                      unawaited(handleUserInput(onSelectLongPress)),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      child:
-                          (_bottomBarPage == _NowPlayingBottomBarPage.lyrics &&
-                              hasLyrics)
-                          ? SyncedLyricsView(
-                              key: _lyricsViewKey,
-                              lyrics: lyrics,
-                              scrollController: _lyricsScrollController,
-                            )
-                          : const NowPlayingWidget(
-                              key: ValueKey('now-playing-view'),
-                            ),
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(
-                height: 24 + SubtleReflection.visibleHeight,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: PageView(
-                    controller: _bottomBarPageController,
-                    physics: const NeverScrollableScrollPhysics(),
-                    children: [
-                      for (final page in bottomBarPages)
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            bottom: SubtleReflection.visibleHeight,
-                          ),
-                          child: page,
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-            ],
+            ),
           ),
         ),
       ),
