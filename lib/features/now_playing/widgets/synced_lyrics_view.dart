@@ -16,6 +16,10 @@ class SyncedLyricsView extends ConsumerStatefulWidget {
   final Lyrics lyrics;
   final ScrollController scrollController;
   final double fontSize;
+  final FontWeight fontWeight;
+
+  /// Line height as a multiple of [fontSize].
+  final double lineHeight;
 
   /// Colour of the sung line; the artwork accent when null.
   final Color? currentColor;
@@ -28,6 +32,8 @@ class SyncedLyricsView extends ConsumerStatefulWidget {
     required this.lyrics,
     required this.scrollController,
     this.fontSize = 17,
+    this.fontWeight = FontWeight.w700,
+    this.lineHeight = 1.3,
     this.currentColor,
     this.onLineTap,
   });
@@ -40,6 +46,11 @@ class SyncedLyricsViewState extends ConsumerState<SyncedLyricsView> {
   /// Lines are emphasised slightly early so the eye arrives with the voice.
   static const _lead = Duration(milliseconds: 150);
   static const _manualPause = Duration(seconds: 4);
+
+  /// White at these opacities marks sung and upcoming lines; upcoming
+  /// lines keep 4.5:1 over every artwork backdrop.
+  static const sungAlpha = 0.48;
+  static const upcomingAlpha = 0.7;
 
   StreamSubscription<PlaybackState>? _positions;
   late List<GlobalKey> _lineKeys;
@@ -143,8 +154,8 @@ class SyncedLyricsViewState extends ConsumerState<SyncedLyricsView> {
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
     final base = TextStyle(
       fontSize: widget.fontSize,
-      height: 1.3,
-      fontWeight: FontWeight.w700,
+      height: widget.lineHeight,
+      fontWeight: widget.fontWeight,
     );
     final onLineTap = widget.onLineTap;
     final gap = widget.fontSize * 0.18;
@@ -193,7 +204,9 @@ class SyncedLyricsViewState extends ConsumerState<SyncedLyricsView> {
                           color: i == _current
                               ? accent
                               : CupertinoColors.white.withValues(
-                                  alpha: i < _current ? 0.42 : 0.62,
+                                  alpha: i < _current
+                                      ? sungAlpha
+                                      : upcomingAlpha,
                                 ),
                         ),
                         // Instrumental gaps are blank lines in LRC.

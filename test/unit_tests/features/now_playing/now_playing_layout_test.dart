@@ -1,34 +1,59 @@
+import 'dart:math' as math;
+import 'dart:typed_data';
+
 import 'package:classipod/core/models/music_metadata.dart';
 import 'package:classipod/core/spotify/spotify_remote.dart';
 import 'package:classipod/core/theme/artwork_palette.dart';
 import 'package:classipod/features/now_playing/artist/go_to_artist.dart';
 import 'package:classipod/features/now_playing/widgets/now_playing_artwork_scene.dart';
+import 'package:classipod/features/now_playing/widgets/now_playing_widget.dart';
+import 'package:classipod/features/now_playing/widgets/synced_lyrics_view.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('now_playing_geometry', () {
-    test('a full phone display shows the cover across the width', () {
-      final g = NowPlayingGeometry.of(const Size(365, 590));
+    test('a phone display puts a compact cover beside the title', () {
+      const window = Size(365, 590);
+      final g = NowPlayingGeometry.of(window);
       expect(g.sideBySide, isFalse);
-      expect(g.artworkSize, 365);
+      expect(g.titleBesideArtwork, isTrue);
+      // Smaller than the old full-width cover, still clearly the subject.
+      expect(g.artworkSize, inInclusiveRange(365 * 0.45, 365 * 0.6));
+      expect(
+        g.lyricsHeight,
+        greaterThanOrEqualTo(window.height * 0.45),
+        reason: 'lyrics take about half the display',
+      );
     });
 
     test('a half-height split-screen window shrinks the cover', () {
       const window = Size(365, 300);
       final g = NowPlayingGeometry.of(window);
-      expect(g.artworkSize, lessThan(365));
+      expect(g.artworkSize, lessThan(365 * 0.45));
       expect(
-        window.height - g.artworkSize,
-        greaterThanOrEqualTo(NowPlayingGeometry.panelMinHeight),
-        reason: 'title, progress and Go to Artist always fit',
+        g.lyricsHeight,
+        greaterThanOrEqualTo(NowPlayingPanel.minLyricsHeight),
+        reason: 'split screen still shows a few lyric lines',
       );
     });
 
     test('a very short window drops the cover, never the controls', () {
-      // Too narrow to put the cover beside the panel.
       final g = NowPlayingGeometry.of(const Size(300, 180));
       expect(g.artworkSize, 0);
+      expect(g.compactMetadata, isTrue);
+    });
+
+    test('very narrow displays stack the cover above the title', () {
+      final g = NowPlayingGeometry.of(const Size(240, 400));
+      expect(g.titleBesideArtwork, isFalse);
+      expect(g.sideBySide, isFalse);
+      expect(g.artworkSize, greaterThan(0));
+    });
+
+    test('tablet displays cap the cover', () {
+      final g = NowPlayingGeometry.of(const Size(800, 1000));
+      expect(g.artworkSize, NowPlayingGeometry.maxArtwork);
     });
 
     test('wide, short windows put the cover beside the panel', () {
@@ -39,27 +64,47 @@ void main() {
     });
 
     for (final size in const [
+      Size(240, 400),
       Size(320, 220),
       Size(365, 260),
       Size(365, 420),
+      Size(365, 590),
       Size(412, 700),
       Size(450, 300),
       Size(700, 300),
+      Size(800, 1000),
+      Size(1200, 700),
     ]) {
-      test('cover and panel fit in $size', () {
+      test('cover, title and controls fit in $size', () {
         final g = NowPlayingGeometry.of(size);
+        const insets = NowPlayingGeometry.topInset + NowPlayingGeometry.inset;
+        expect(
+          g.headerHeight + insets + NowPlayingGeometry.controlsHeight,
+          lessThanOrEqualTo(size.height),
+        );
+        expect(
+          g.lyricsHeight,
+          closeTo(
+            size.height -
+                insets -
+                g.headerHeight -
+                NowPlayingGeometry.controlsHeight,
+            0.001,
+          ),
+        );
         if (g.sideBySide) {
           expect(g.artworkSize, lessThanOrEqualTo(size.height));
           expect(
             size.width - g.artworkSize,
             greaterThanOrEqualTo(NowPlayingGeometry.panelMinWidth),
           );
+        } else if (g.titleBesideArtwork) {
+          expect(
+            size.width - g.artworkSize - 3 * NowPlayingGeometry.inset,
+            greaterThanOrEqualTo(NowPlayingGeometry.metadataMinWidth),
+          );
         } else {
           expect(g.artworkSize, lessThanOrEqualTo(size.width));
-          expect(
-            g.artworkSize + NowPlayingGeometry.panelMinHeight,
-            lessThanOrEqualTo(size.height),
-          );
         }
       });
     }
@@ -89,6 +134,84 @@ void main() {
         final contrast = 1.05 / (panel.computeLuminance() + 0.05);
         expect(contrast, greaterThanOrEqualTo(7), reason: '$scrim');
       }
+    });
+
+    /// Contrast of white at [alpha] laid over [glass] over [backdrop].
+    double contrast(double alpha, Color backdrop, [Color? glass]) {
+      final bg = glass == null ? backdrop : Color.alphaBlend(glass, backdrop);
+      final fg = Color.alphaBlend(
+        const Color(0xFFFFFFFF).withValues(alpha: alpha),
+        bg,
+      );
+      final a = fg.computeLuminance(), b = bg.computeLuminance();
+      return (math.max(a, b) + 0.05) / (math.min(a, b) + 0.05);
+    }
+
+    final covers = <String, Color>{
+      'white': const Color(0xFFFFFFFF),
+      'black': const Color(0xFF000000),
+      'yellow': const Color(0xFFFFE600),
+      'lime': const Color(0xFF00FF00),
+      'cyan': const Color(0xFF00FFFF),
+      'red': const Color(0xFFDC1428),
+      'grey': const Color(0xFF808080),
+    };
+    for (final entry in covers.entries) {
+      test('text over a ${entry.key} cover backdrop stays readable', () {
+        final c = entry.value;
+        final palette = ArtworkPalette(
+          scrim: c,
+          accent: const Color(0xFF6FB3FF),
+          primary: c,
+          secondary: c,
+        );
+        for (final backdrop in [palette.ambient, palette.depth]) {
+          expect(contrast(1, backdrop), greaterThanOrEqualTo(7));
+          expect(
+            contrast(NowPlayingMetadata.secondaryAlpha, backdrop),
+            greaterThanOrEqualTo(4.5),
+            reason: 'artist',
+          );
+          expect(
+            contrast(NowPlayingMetadata.tertiaryAlpha, backdrop),
+            greaterThanOrEqualTo(4.5),
+            reason: 'album and timestamps',
+          );
+          // Lyrics sit on the glass surface.
+          expect(
+            contrast(1, backdrop, palette.glass),
+            greaterThanOrEqualTo(7),
+            reason: 'sung line',
+          );
+          expect(
+            contrast(
+              SyncedLyricsViewState.upcomingAlpha,
+              backdrop,
+              palette.glass,
+            ),
+            greaterThanOrEqualTo(4.5),
+            reason: 'upcoming lines',
+          );
+          expect(
+            contrast(SyncedLyricsViewState.sungAlpha, backdrop, palette.glass),
+            greaterThanOrEqualTo(3),
+            reason: 'past lines are dimmed but legible',
+          );
+        }
+      });
+    }
+
+    test('the backdrop is darker at the bottom than at the top', () {
+      final palette = ArtworkPalette.fromPixels(
+        Uint8List.fromList([
+          for (var i = 0; i < 16; i++) ...[40, 90, 200, 255],
+        ]),
+      );
+      expect(
+        palette.depth.computeLuminance(),
+        lessThan(palette.ambient.computeLuminance()),
+      );
+      expect(HSLColor.fromColor(palette.ambient).hue, closeTo(222, 6));
     });
 
     test('a dark blue cover gives a dark blue panel', () {

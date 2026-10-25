@@ -47,6 +47,35 @@ class ArtworkPalette {
         .toColor();
   }
 
+  /// Top of the Now Playing backdrop: the cover's main colour family,
+  /// darkened and desaturated so the display reads as an extension of the
+  /// cover without turning neon. White text keeps a contrast of 7:1 or more.
+  Color get ambient {
+    final hsl = HSLColor.fromColor(primary);
+    return hsl
+        .withSaturation(hsl.saturation.clamp(0, 0.42))
+        .withLightness(hsl.lightness.clamp(0.12, 0.2))
+        .toColor();
+  }
+
+  /// Bottom of the backdrop: the cover's overall tint settling towards
+  /// OLED black.
+  Color get depth {
+    final hsl = HSLColor.fromColor(scrim);
+    return hsl
+        .withSaturation(hsl.saturation.clamp(0, 0.4))
+        .withLightness(hsl.lightness.clamp(0.03, 0.07))
+        .toColor();
+  }
+
+  /// Soft light from the cover's second colour family, behind the artwork.
+  Color get glow => secondary.withValues(alpha: 0.28);
+
+  /// Translucent surface under the lyrics: a lighter tint of the cover's
+  /// main colour laid thinly over the backdrop.
+  Color get glass =>
+      Color.lerp(primary, const Color(0xFFFFFFFF), 0.4)!.withValues(alpha: 0.1);
+
   /// Builds the palette from RGBA pixels of a small thumbnail.
   factory ArtworkPalette.fromPixels(Uint8List rgba) {
     var r = 0, g = 0, b = 0, count = 0;

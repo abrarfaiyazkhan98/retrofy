@@ -311,6 +311,41 @@ void main() {
       expect(find.byType(NowPlayingBottomBar), findsWidgets);
     });
 
+    testWidgets('a compact cover sits beside the title above the lyrics', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(360, 640);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await mount(tester);
+      final cover = tester.getRect(
+        find.byKey(const ValueKey('now-playing-artwork')),
+      );
+      final title = tester.getRect(find.text('Song').first);
+      final lyrics = tester.getRect(
+        find.byKey(const ValueKey('now-playing-lyrics-surface')),
+      );
+      expect(cover.width, lessThan(360 * 0.6));
+      expect(title.left, greaterThan(cover.right), reason: 'title beside');
+      expect(lyrics.top, greaterThanOrEqualTo(cover.bottom));
+      expect(lyrics.height, greaterThanOrEqualTo(640 * 0.4));
+      final progress = tester.getRect(find.byType(NowPlayingBottomBar).first);
+      expect(progress.top, greaterThanOrEqualTo(lyrics.bottom));
+    });
+
+    testWidgets('a track without a readable cover keeps OLED black', (
+      tester,
+    ) async {
+      await mount(tester);
+      await tester.pumpAndSettle();
+      final backdrop = tester.widget<DecoratedBox>(
+        find.byKey(const ValueKey('now-playing-backdrop')),
+      );
+      final gradient =
+          (backdrop.decoration as BoxDecoration).gradient! as LinearGradient;
+      expect(gradient.colors, everyElement(const Color(0xFF000000)));
+    });
+
     testWidgets('Go to Artist replaces browsing for lyrics', (tester) async {
       await mount(tester);
       expect(find.byKey(const ValueKey('go-to-artist')), findsOneWidget);

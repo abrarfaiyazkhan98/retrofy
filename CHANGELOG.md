@@ -37,10 +37,13 @@
 
 ### New features
 
-- Now Playing redesign: the whole cover above a panel tinted from it,
-  with title, artist and album, live lyrics, progress and Go to Artist.
-  Covers shrink proportionally in split screen and sit beside the panel in
-  wide, short windows; lyrics give way before any control is clipped.
+- Now Playing redesign: a compact rounded cover beside the title, artist
+  and album, then live lyrics on a translucent surface taking about half
+  the display, progress and Go to Artist. The whole display takes a dark,
+  desaturated gradient from the cover that crossfades between songs, and
+  stays OLED black when there is no cover. Wide, short windows give the
+  cover a column of its own, very narrow displays stack it above the
+  title, and lyrics give way before any control is clipped.
 - Lyrics live in Now Playing: synced lines follow the song (pausing with
   it, catching up after seeks and skips), plain lyrics scroll, and tracks
   without lyrics say "Lyrics unavailable for this track." The wheel
